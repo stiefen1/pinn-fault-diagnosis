@@ -1,0 +1,118 @@
+config:
+  base: configs/base.yaml
+
+seed:
+  global: 42
+
+project:
+  mode: test
+  experiment_name: generate_dataset_v1
+
+episodes:
+  N: 100
+  max_steps_per_episode: 500
+
+dataset:
+  save_dir: data/train
+  file_name: fault_identification_dataset_aux_2.npz
+
+env:
+  render: false
+  wind:
+    angle:
+      min: -3.14159
+      max: 3.14159
+      ornstein_uhlenbeck:
+        attraction: 0.03
+        amplitude: 0.05
+    speed:
+      min: 0.0
+      max: 10.0
+      ornstein_uhlenbeck:
+        attraction: 0.03
+        amplitude: 0.1
+    info: "According to https://app.fcoo.dk/ifm-maps/denmark/, wind up to 15m/s in any direction"
+
+  current:
+    angle:
+      min: -3.14159
+      max: 3.14159
+      ornstein_uhlenbeck:
+        attraction: 0.01
+        amplitude: 0.01
+    speed:
+      min: 0.0
+      max: 0.1
+      ornstein_uhlenbeck:
+        attraction: 0.01
+        amplitude: 0.01
+    info: "According to https://app.fcoo.dk/ifm-maps/denmark/, current up to 2kn in both directions"
+
+vessel:
+  dt: 0.2
+  dp_mode: false
+
+  auxiliary_excitation:
+    enabled: true
+    # port:
+    #   azimuth: 'GaussianNoise(amplitude=2.0)'
+    #   speed: 'GaussianNoise(amplitude=10)'
+    # starboard:
+    #   azimuth: 'GaussianNoise(amplitude=2.0)'
+    #   speed: 'GaussianNoise(amplitude=10)'
+    port:
+      azimuth: 'Sinus(frequency=0.2, amplitude=3.14159, time_delay_sec=0.0, y_offset=0.0) + GaussianNoise(amplitude=0.5)'
+      speed: 'PRBS(amplitude=45, bit_rate=0.1, y_offset=45) + GaussianNoise(amplitude=10)'
+    starboard:
+      azimuth: 'Sinus(frequency=0.1, amplitude=-3.14159, time_delay_sec=0.0, y_offset=0.0) + GaussianNoise(amplitude=0.5)'
+      speed: 'PRBS(amplitude=-45, bit_rate=0.12, y_offset=45) + GaussianNoise(amplitude=10)'
+
+  # guidance and control parameters have no effect if random_excitation is enabled
+  guidance:
+    d_tot: 100
+    max_turn_deg: 90
+    seg_len_range: [5, 10]
+    smooth: 3
+    target_speed:
+      min: 0.3
+      max: 1.0
+      mean: 0.5
+      std: 0.2
+
+  navigation:
+    enabled: false # false -> measurments == true states
+
+  control:
+    enabled: false
+    horizon: 30
+    singularity_weight: 0.0
+
+  faults:
+    loss_of_effectiveness:
+      prob: [0.5, 0.5, 0]
+      amplitude:
+        min: 0
+        max: 1
+        mean: 0.5 # uniform distribution if only min and max are provided, othewise clipped gaussian
+        std: 0.3
+      time:
+        min: 0.0
+        max: 1.0
+        mean: 0.5
+        std: 0.2
+
+    azimuth_stucked:
+      prob: [0, 0, 0]
+      amplitude:
+        min: 0
+        max: 1
+        mean: 1
+        std: 0.2
+      time:
+        min: 0.0
+        max: 1.0
+        mean: 0.5
+        std: 0.2
+
+
+    

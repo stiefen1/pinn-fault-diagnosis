@@ -1,0 +1,161 @@
+# Draft training overlay config.
+#
+# Intended usage:
+# 1) Load configs/base.yaml first (shared settings).
+# 2) Merge this file on top for training-specific behavior.
+#
+# Example merge order in your loader:
+#   base.yaml -> train.yaml
+
+config:
+  base: configs/base.yaml
+
+project:
+  mode: train
+  experiment_name: train_baseline_v1
+  tags: [pinn, fault-diagnosis, train]
+
+data:
+  datasets:
+    format: npz
+    train_path: 
+      - data/train/fault_identification_dataset_v1.npz
+      - data/train/fault_identification_dataset_aux_1.npz
+      - data/train/fault_identification_dataset_aux_2.npz
+    val_path: data/validation/fault_identification_dataset_v1.npz
+    test_path: data/generated/fault_identification_dataset_v1.npz
+
+  loading:
+    shuffle_train: true
+    shuffle_val: false
+    shuffle_test: false
+    drop_last_train: true
+
+  batch:
+    train_batch_size: 256
+    val_batch_size: 512
+    test_batch_size: 512
+    num_workers: 4
+    persistent_workers: true
+    prefetch_factor: 4
+
+model:
+  name: MLPFaultEstimator
+
+  architecture:
+    hidden_layers: [128, 128, 64]
+    activation:
+      name: relu # relu | tanh | gelu | silu | leaky_relu
+    output_activation:
+      name: sigmoid
+    dropout: 0.0
+    layer_norm: false
+    batch_norm: false
+
+train:
+  enabled: true
+  max_epochs: 300
+  grad_clip_norm: 1.0
+  gradient_accumulation_steps: 1
+
+  early_stopping:             # stop training if validation stopped improving
+    enabled: false
+    patience: 25              # number of epochs without improvement before stopping
+    min_delta: 1.0e-6         # improvement must be at least greater than this value
+
+loss:
+  supervised:                 # regularization is handled by the optimizer
+    name: mse                 # mse | mae | huber
+    huber_delta: 1.0
+
+  # physics:                  # TODO: Implement a physics loss
+  #   name: mse
+  #   huber_delta: 1.0
+
+optimizer:
+  name: adamw                 # adam | adamw | sgd
+  lr: 1.0e-3
+  weight_decay: 1.0e-4
+
+  scheduler:                  # step | cosine_annealing | exp
+    enabled: true
+    name: cosine_annealing
+    last_epoch: -1
+    eta_min: 1.0e-6
+
+hardware:
+  device: cuda
+  gpus: 1
+  gpu_ids: [0]
+  num_nodes: 1
+  dataloader_workers_per_gpu: 8
+  set_float32_matmul_precision: high
+
+hyperparameter_search:
+  backend: optuna
+  objective: minimize
+  study_name: pinn_hpo
+  storage: optuna_studies/pinn_hpo.log  # .log = JournalFileStorage (NFS-safe); .db = SQLite (local only)
+  n_trials: 5                           # trials per 
+
+  search_space:
+    model.architecture.hidden_layers:
+      type: categorical
+      values:
+        - [128, 128]
+        - [256, 128, 64]
+        - [256, 256, 128]
+
+    model.architecture.dropout:
+      type: uniform
+      low: 0.0
+      high: 0.3
+
+    optimizer.name:
+      type: categorical
+      values: [adam, adamw]
+
+    optimizer.lr:
+      type: loguniform
+      low: 1.0e-5
+      high: 1.0e-2
+
+    optimizer.weight_decay:
+      type: loguniform
+      low: 1.0e-8
+      high: 1.0e-2
+
+    # physics.loss_weights.physics:
+    #   type: loguniform
+    #   low: 1.0e-3
+    #   high: 10.0
+
+hpc:
+  partition: GPUQ           # GPUQ | CPUQ
+  time: "12:00:00" 
+  ntasks: 1
+  nodes: 1
+  cpus_per_task: 16
+  gpus: 1
+  mem: 32G
+
+  array:
+    enabled: true
+    size: 8                   # number of parallel workers; each runs n_trials / size trials
+
+  environment:
+    modules:
+      - Miniconda3/24.7.1-0
+    conda_env: pinn-fault-diagnosis
+
+  launcher:
+    kind: python
+    command: python scripts/tune.py --config configs/tune.yaml
+
+  slurm_script:
+    enabled: true # Launch done through a slurm file
+    output_dir: slurm_logs/
+    job_name: pinn_hpo
+    # extra_sbatch_args:
+    #   - "--constraint=a100|h100" # only use a100 or h100 nodes
+    #   - "--exclusive" # reserve full node for ourself

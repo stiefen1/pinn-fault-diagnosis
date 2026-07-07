@@ -1,0 +1,3 @@
+[submodule "submodules/PythonVehicleSimulator"]
+	path = submodules/PythonVehicleSimulator
+	url = https://github.com/stiefen1/PythonVehicleSimulator.git

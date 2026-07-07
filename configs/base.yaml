@@ -1,0 +1,60 @@
+# Draft shared base configuration.
+#
+# This file should contain only settings that are common across
+# train/validate/test overlays.
+
+project:
+  name: pinn-fault-diagnosis
+  task: fault_estimation
+  output_root: runs/
+  experiment_name: baseline
+  tags: [pinn, fault-diagnosis]
+
+seed:
+  global: 42
+  deterministic: false
+  torch:
+    benchmark: true
+
+hardware:
+  device: cuda                # cuda | cpu
+  gpus: 1
+  gpu_ids: [0]
+  num_nodes: 1
+
+  dataloader_workers_per_gpu: 8
+  set_float32_matmul_precision: high  # highest | high | medium
+
+hpc:
+  partition: GPUQ           # GPUQ | CPUQ
+  time: "12:00:00" 
+  ntasks: 1
+  nodes: 1
+  cpus_per_task: 16
+  gpus: 1
+  mem: 32G
+
+  array:
+    enabled: true
+    size: 8                   # number of parallel workers; each runs n_trials / size trials
+
+  environment:
+    modules:
+      - Miniconda3/24.7.1-0
+    conda_env: pinn-fault-diagnosis
+
+  launcher:
+    kind: python
+    command: python scripts/tune.py --config configs/tune.yaml
+
+  slurm_script:
+    enabled: true # Launch done through a slurm file
+    output_dir: slurm_logs/
+    job_name: pinn_hpo
+    # extra_sbatch_args:
+    #   - "--constraint=a100|h100"
+    #   - "--exclusive"
+
+notes:
+  - Shared defaults for train/validate/test overlays.
+  - Keep mode-specific changes in overlay files (train.yaml, validate.yaml, test.yaml).

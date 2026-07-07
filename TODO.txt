@@ -1,0 +1,19 @@
+PINN-Fault-Diagnosis
+    - Build your own NN architecture:
+        - Create a .py file inside the architecture folder
+        - Create a new class representing your NN that inherits from ```BaseFaultEstimatorNN``` (see ```src/architecture/base.py```)
+        - Implement the ```init_architecture``` and ```forward``` methods to match the desired architecture
+
+PythonVehicleSimulator
+    - Parallelize vessel dynamics to accelerate dataset generation
+
+Revolt3
+    - Make it possible to sample parameters of the dynamics
+
+General
+    - Add singularity avoidance to diversify control commands
+    - Stitch datasets together (e.g. different trajectories, auxiliary excitation, etc..)
+
+***IDEAS***
+- use gaussians as output -> for each parameter we provide mean and std deviation. That makes sense when we have noisy measurements.
+- One thing that people might wonder is; why would you use a NN instead of an KF approach ? For this reasons, we might train/test our system with different noise distributions 

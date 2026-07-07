@@ -1,0 +1,47 @@
+# Draft test overlay config.
+# Usage: python -m src.eval.test --config configs/test.yaml
+
+config:
+  base: configs/base.yaml
+
+project:
+  mode: test
+  experiment_name: train_baseline_v1
+
+io:
+  # Keep for consistency with where training saved checkpoints.
+  checkpoint_dir: checkpoints/
+
+  # Test script does not use TensorBoard; keep disabled by default.
+  logging:
+    enabled: false
+
+model:
+  name: MLPFaultEstimator
+
+  architecture:
+    hidden_layers: [128, 128, 64]
+    activation:
+      name: relu # relu | tanh | gelu | silu | leaky_relu
+    output_activation:
+      name: sigmoid
+
+data:
+  datasets:
+    format: npz
+    test_path: data/validation/fault_identification_dataset_v1.npz
+
+  loading:
+    shuffle_test: false
+
+  batch:
+    test_batch_size: 1024
+
+test:
+  enabled: true
+  checkpoint: path            # best | last | path
+  checkpoint_path: runs/train_baseline_v1/checkpoints/epoch_0290.pt # null
+  metrics: [rmse, mae, r2]
+  export:
+    save_csv: true
+    save_npz: true

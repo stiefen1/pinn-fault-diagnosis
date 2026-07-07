@@ -1,0 +1,5 @@
+(29.06.2026) Weights initialization based on activation fn:
+- relu / leaky_relu -> Kaiming
+- tahn / sigmoid -> Xavier
+
+It drastically increased final cost, even with different learning rates. This feature was completely removed for now, but can be re-implement in BaseFaultEstimatorNN.init_weights
