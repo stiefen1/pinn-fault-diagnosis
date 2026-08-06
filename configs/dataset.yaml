@@ -23,7 +23,6 @@ hpc:
   ntasks: 1
   nodes: 1
   cpus_per_task: 10
-  gpus: 1
   mem: 32G
 
   slurm_script:
