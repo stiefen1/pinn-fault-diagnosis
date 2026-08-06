@@ -51,7 +51,7 @@ def sample_config(trial: optuna.Trial, cfg: dict) -> dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", type=Path, default=Path("configs/tune.yaml"))
+    parser.add_argument("--config", "-c", type=Path, default=Path("configs/tune.yaml"))
     args = parser.parse_args()
 
     cfg = load_config(args.config)

@@ -100,6 +100,7 @@ class NavigationRevolt(INavigation):
             "current": current_meas,
             "wind": wind_meas,
             "obstacles": obstacles,
+            "measurements": states_meas,
             "target_vessels": target_vessels, # Required for IGuidance
             "actual_states": states,
             "theta": theta if theta is not None else np.ones((6,))

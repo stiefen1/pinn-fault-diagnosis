@@ -10,6 +10,13 @@ project:
   experiment_name: baseline
   tags: [pinn, fault-diagnosis]
 
+dataset:
+  features:
+    nx: 18
+    nu: 6
+    ntheta: 6
+    n_samples: 1
+
 seed:
   global: 42
   deterministic: false
@@ -26,31 +33,35 @@ hardware:
   set_float32_matmul_precision: high  # highest | high | medium
 
 hpc:
-  partition: GPUQ           # GPUQ | CPUQ
+  partition: CPUQ           # GPUQ | CPUQ
   time: "12:00:00" 
   ntasks: 1
   nodes: 1
-  cpus_per_task: 16
+  cpus_per_task: 10
   gpus: 1
   mem: 32G
 
-  array:
-    enabled: true
-    size: 8                   # number of parallel workers; each runs n_trials / size trials
+  slurm_script:
+    enabled: false # Launch done through a slurm file
+    output_dir: slurm_files/
+    job_name: demo_array
 
   environment:
     modules:
       - Miniconda3/24.7.1-0
     conda_env: pinn-fault-diagnosis
 
+  array:
+    enabled: false
+
   launcher:
     kind: python
-    command: python scripts/tune.py --config configs/tune.yaml
+    command: python -m src.rl.train -c configs/train_local.yaml
 
   slurm_script:
     enabled: true # Launch done through a slurm file
     output_dir: slurm_logs/
-    job_name: pinn_hpo
+    job_name: pinns
     # extra_sbatch_args:
     #   - "--constraint=a100|h100"
     #   - "--exclusive"

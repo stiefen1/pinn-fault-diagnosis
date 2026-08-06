@@ -10,6 +10,10 @@ from src.vessel.guidance import TrajectoryTrackingGuidance
 from src.vessel.navigation import NavigationRevolt
 from src.vessel.control import NMPCTrajectoryTrackerRevolt
 
+from src.diagnosis.ekf import EKFFaultDiagnosis
+from src.diagnosis.particle_filter import ParticleFilterFaultDiagnosis
+from src.diagnosis.parity_space import ParitySpaceFaultDiagnosis
+
 import numpy as np, matplotlib.pyplot as plt
 
 dt = 0.2
@@ -23,15 +27,25 @@ vessel = ReVolt3(
             horizon,
             dt,
             dp_mode=dp_mode,
-            singularity_weight=0
+            singularity_weight=1e-4
         ),
         guidance=TrajectoryTrackingGuidance(
-            PWLPath.sample(d_tot=100, max_turn_deg=90, seg_len_range=(5, 10), seed=42).smooth(3),
+            PWLPath.sample(d_tot=500, max_turn_deg=90, seg_len_range=(3, 5), seed=42).smooth(3),
             0.5,
             dt,
             horizon            
         ),
         navigation=NavigationRevolt(np.array(18*[0]), dt, dp_mode=dp_mode),
+        diagnosis=ParticleFilterFaultDiagnosis(
+            dt,
+            n_particles=1000,
+            theta_process_std=0.01
+        )
+        # diagnosis=EKFFaultDiagnosis(
+        #     dt, 
+        #     dp_mode=dp_mode,
+        #     frozen_states=np.array([10, 11])
+        # )
     )
 
 env = NavEnv(
@@ -52,7 +66,7 @@ sim = Simulator(
         window_size=(6, 6)
     )
 
-sim.run(tf=100, render=True, store_data=True, theta=np.array([1, 1, 1, 1, 1, 1]))
+sim.run(tf=500, render=True, store_data=True, theta=np.array([1, 1, 1, 0.5, 1, 1]))
 
 # After calling plot_gnc_data_multi, add:
 nav_data = sim.simulation_data['gnc_data']['navigation']
@@ -73,6 +87,20 @@ fig6 = sim.plot_gnc_data_multi([
     'navigation.actual_states[15]',
     'navigation.actual_states[16]',
     'navigation.actual_states[17]'
+])
+
+fig7 = sim.plot_gnc_data_multi([
+    'diagnosis.diagnosis.diagnosis_theta[0]',
+    'diagnosis.diagnosis.diagnosis_theta[1]',
+    'diagnosis.diagnosis.diagnosis_theta[3]',
+    'diagnosis.diagnosis.diagnosis_theta[4]',
+])
+
+fig8 = sim.plot_gnc_data_multi([
+    'diagnosis.diagnosis.diagnosis_theta_cov[0]',
+    'diagnosis.diagnosis.diagnosis_theta_cov[1]',
+    'diagnosis.diagnosis.diagnosis_theta_cov[3]',
+    'diagnosis.diagnosis.diagnosis_theta_cov[4]',
 ])
 
 plt.show(block=True)

@@ -102,7 +102,7 @@ def run_test(cfg: dict) -> None:
 
 def main() -> None:
 	parser = argparse.ArgumentParser()
-	parser.add_argument("--config", type=str, default="configs/test.yaml")
+	parser.add_argument("--config", "-c", type=str, default="configs/test.yaml")
 	args = parser.parse_args()
 
 	cfg = load_config(Path(args.config).resolve())

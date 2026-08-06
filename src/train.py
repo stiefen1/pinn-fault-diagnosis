@@ -227,7 +227,7 @@ def train(cfg: dict) -> float:
 
 def main() -> None:
 	parser = argparse.ArgumentParser()
-	parser.add_argument("--config", type=str, default="configs/train.yaml")
+	parser.add_argument("--config", "-c", type=str, default="configs/train.yaml")
 	parser.add_argument(
 		"--set",
 		nargs="*",

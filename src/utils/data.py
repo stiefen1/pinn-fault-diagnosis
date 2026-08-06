@@ -46,26 +46,29 @@ def load_dataset(path: str):
 def load_datasets(paths: Union[str, list[str]]) -> Dataset:
     """Load one or more dataset paths and return a single Dataset."""
     if isinstance(paths, str):
-        return load_dataset(paths)
-    datasets = [load_dataset(p) for p in paths]
+        paths = [paths]
+    datasets = []
+    N = len(paths)
+    for i, p in enumerate(paths):
+        datasets.append(load_dataset(p))
+        print(f"Successfully loaded dataset {i+1}/{N} - {p}")
     return datasets[0] if len(datasets) == 1 else ConcatDataset(datasets)
 
 
 def make_loader(cfg: dict[str, Any], split: str) -> DataLoader:
     """Create a DataLoader for a given split: train | val | test."""
-    data_cfg = cfg["data"]
-    ds_cfg = data_cfg["datasets"]
+    data_cfg = cfg["dataset"]
     batch_cfg = data_cfg["batch"]
     load_cfg = data_cfg.get("loading", {})
 
     path_key = f"{split}_path"
-    if path_key not in ds_cfg:
+    if path_key not in data_cfg:
         raise KeyError(f"Missing datasets path key: {path_key}")
 
     batch_key = f"{split}_batch_size"
     default_batch = 256 if split == "train" else 1024
 
-    dataset = load_datasets(ds_cfg[path_key])
+    dataset = load_datasets(data_cfg[path_key])
     num_workers = int(batch_cfg.get("num_workers", 0))
     requested_device = str(cfg.get("hardware", {}).get("device", "cuda")).lower()
     pin_memory = (requested_device == "cuda" and torch.cuda.is_available())

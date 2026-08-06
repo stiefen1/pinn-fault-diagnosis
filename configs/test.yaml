@@ -26,10 +26,9 @@ model:
     output_activation:
       name: sigmoid
 
-data:
-  datasets:
-    format: npz
-    test_path: data/validation/fault_identification_dataset_v1.npz
+dataset:
+  format: npz
+  test_path: data/validation/fault_identification_dataset_v1.npz
 
   loading:
     shuffle_test: false

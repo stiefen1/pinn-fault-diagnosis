@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 from typing import Any
 
@@ -26,7 +27,7 @@ class FaultIdentificationDatasetGenerator:
     def __init__(self, config_path: str | Path, render: bool = False):
         self.config_path = Path(config_path).resolve()
         self.cfg = load_config(self.config_path)
-        features_cfg = self.cfg["data"]["features"]
+        features_cfg = self.cfg["dataset"]["features"]
         self.nx = int(features_cfg["nx"])
         self.nu = int(features_cfg["nu"])
         self.ntheta = int(features_cfg["ntheta"])
@@ -45,6 +46,7 @@ class FaultIdentificationDatasetGenerator:
 
         amp_cfg = cfg_fault["amplitude"] # fault amplitude \in [0, 1]
         time_cfg = cfg_fault["time"] # parameters of uniform or clipped gaussian distribution
+        is_integer = cfg_fault.get("is_integer", False)
 
         for i in range(3):
             # Independent Bernoulli trial per actuator for this fault type.
@@ -52,8 +54,7 @@ class FaultIdentificationDatasetGenerator:
                 t_norm = sample_clipped_value(rng, time_cfg) # randomy sample fault time, normalized \in [0, 1] i.e equals 1 if t_fault = tf
                 k_fault = int(np.floor(t_norm * (max_steps - 1))) # map normalized time to time-step
                 amp = sample_clipped_value(rng, amp_cfg) # randomly sample fault amplitude
-                schedule[k_fault:, i] = amp # theta only changes once along a trajectory
-
+                schedule[k_fault:, i] = int(amp) if is_integer else amp # theta only changes once along a trajectory
         return schedule
 
     def _sample_theta_schedule(self, rng: np.random.Generator, max_steps: int) -> np.ndarray:
@@ -77,7 +78,6 @@ class FaultIdentificationDatasetGenerator:
 
     def _build_env(self, episode_seed: int) -> NavEnv:
         rng = np.random.default_rng(episode_seed)
-        
 
         vessel_cfg = self.cfg["vessel"]
         env_cfg = self.cfg["env"]
@@ -190,7 +190,7 @@ class FaultIdentificationDatasetGenerator:
         x[0] = vessel.states.copy()
 
         t_sec = 0.0
-        for k in tqdm(range(max_steps)):
+        for k in range(max_steps):
             theta_k = theta_schedule[k]
             env.step(theta=theta_k, t=t_sec)
             if self.render:
@@ -217,14 +217,17 @@ class FaultIdentificationDatasetGenerator:
         seed_cfg = self.cfg["seed"]
         base_seed = int(seed_cfg["global"])
         n_episodes = int(self.cfg["episodes"]["N"])
+        num_workers = int(self.cfg["episodes"].get("num_workers", 1))
 
-        episodes = []
-        lengths = []
-        for ep in range(n_episodes):
-            episode_seed = base_seed + ep
-            episode_data = self._run_episode(episode_seed)
-            episodes.append(episode_data)
-            lengths.append(len(episode_data["y"]))
+        seeds = [base_seed + ep for ep in range(n_episodes)]
+
+        if num_workers > 1:
+            with ProcessPoolExecutor(max_workers=num_workers) as executor:
+                episodes = list(tqdm(executor.map(self._run_episode, seeds), total=n_episodes, desc="Episodes"))
+        else:
+            episodes = [self._run_episode(s) for s in tqdm(seeds, desc="Episodes")]
+
+        lengths = [len(ep["y"]) for ep in episodes]
 
         max_len = max(lengths)
 
@@ -259,7 +262,7 @@ class FaultIdentificationDatasetGenerator:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Generate fault-identification trajectory dataset")
-    parser.add_argument("--config", type=str, default="configs/dataset.yaml")
+    parser.add_argument("--config", "-c", type=str, default="configs/dataset.yaml")
     args = parser.parse_args()
 
     generator = FaultIdentificationDatasetGenerator(args.config, True)

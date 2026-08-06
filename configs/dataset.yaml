@@ -9,12 +9,32 @@ project:
   experiment_name: generate_dataset_v1
 
 episodes:
-  N: 100
-  max_steps_per_episode: 500
+  N: 10 # number of episodes to build the dataset
+  max_steps_per_episode: 500 # total number of simulation steps for a single episode
+  num_workers: 4 # number of parallel CPU workers (1 = sequential)
 
 dataset:
-  save_dir: data/train
+  save_dir: data/train # location to save dataset
   file_name: fault_identification_dataset_aux_2.npz
+
+hpc:
+  partition: CPUQ           # There's not point in using GPUs here
+  time: "12:00:00" 
+  ntasks: 1
+  nodes: 1
+  cpus_per_task: 10
+  gpus: 1
+  mem: 32G
+
+  slurm_script:
+    enabled: true # Launch done through a slurm file
+    output_dir: slurm_files/
+    job_name: demo_array
+
+  environment:
+    modules:
+      - Miniconda3/24.7.1-0
+    conda_env: pinn-fault-diagnosis
 
 env:
   render: false
@@ -31,7 +51,7 @@ env:
       ornstein_uhlenbeck:
         attraction: 0.03
         amplitude: 0.1
-    info: "According to https://app.fcoo.dk/ifm-maps/denmark/, wind up to 15m/s in any direction"
+    info: "Be brave."
 
   current:
     angle:
@@ -46,7 +66,7 @@ env:
       ornstein_uhlenbeck:
         attraction: 0.01
         amplitude: 0.01
-    info: "According to https://app.fcoo.dk/ifm-maps/denmark/, current up to 2kn in both directions"
+    info: "PINNs rock."
 
 vessel:
   dt: 0.2
@@ -67,12 +87,11 @@ vessel:
       azimuth: 'Sinus(frequency=0.1, amplitude=-3.14159, time_delay_sec=0.0, y_offset=0.0) + GaussianNoise(amplitude=0.5)'
       speed: 'PRBS(amplitude=-45, bit_rate=0.12, y_offset=45) + GaussianNoise(amplitude=10)'
 
-  # guidance and control parameters have no effect if random_excitation is enabled
-  guidance:
-    d_tot: 100
-    max_turn_deg: 90
-    seg_len_range: [5, 10]
-    smooth: 3
+  guidance: # The guidance module generates a random trajectory to be tracked by the NMPC controller 
+    d_tot: 100 # total distance for the randomly generated path
+    max_turn_deg: 90 # max angle between two consecutive segment of the randomly generated path
+    seg_len_range: [5, 10] # range of lengths for segment of the randomly generated path
+    smooth: 3 # smoothing radius 
     target_speed:
       min: 0.3
       max: 1.0
@@ -80,11 +99,11 @@ vessel:
       std: 0.2
 
   navigation:
-    enabled: false # false -> measurments == true states
+    enabled: false # false -> measurements == true states
 
   control:
-    enabled: false
-    horizon: 30
+    enabled: false   # guidance and control parameters have no effect if control is not enabled
+    horizon: 30 # for MPC
     singularity_weight: 0.0
 
   faults:
@@ -102,7 +121,8 @@ vessel:
         std: 0.2
 
     azimuth_stucked:
-      prob: [0, 0, 0]
+      prob: [0, 0, 0] # Currently no fault
+      is_integer: true # fault parameter can only be 0 or 1
       amplitude:
         min: 0
         max: 1

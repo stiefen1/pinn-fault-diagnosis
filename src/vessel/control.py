@@ -28,7 +28,7 @@ class NMPCTrajectoryTrackerRevolt(NMPCTracker):
             R: Optional[npt.NDArray] = np.diag(3*[1e-6] + 3*[1e-5]),
             QN: Optional[npt.NDArray] = None, # Equal to Q if None
             singularity_eps: float = 1e-6,
-                singularity_weight: float = 1e-5,
+            singularity_weight: float = 1e-5,
             **kwargs
     ):
         self.dp_mode = dp_mode

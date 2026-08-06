@@ -58,16 +58,20 @@ class StateEstimatorEKF(IExtendedKalmanFilter):
     def dp_mode(self) -> bool:
         return self.revolt_dynamics.dp_mode
 
-    def f(self, x:np.ndarray, u:np.ndarray, *args, theta:Optional[np.ndarray]=None, disturbance:Optional[np.ndarray]=None, **kwargs) -> np.ndarray:
+    def f(self, x:np.ndarray, u:np.ndarray, *args, theta:Optional[np.ndarray]=None, diagnosis_theta:Optional[np.ndarray]=None, disturbance:Optional[np.ndarray]=None, **kwargs) -> np.ndarray:
         """
         System's model: x' = f(x, u) + v
         """
+        if diagnosis_theta is not None:
+            theta = diagnosis_theta
         return self.revolt_dynamics.fd(x, u, theta if theta is not None else np.ones((6,)), disturbance if disturbance is not None else np.zeros((3,))).squeeze()
     
-    def dfdx(self, x:np.ndarray, u:np.ndarray, *args, theta:Optional[np.ndarray]=None, disturbance:Optional[np.ndarray]=None, **kwargs) -> np.ndarray:
+    def dfdx(self, x:np.ndarray, u:np.ndarray, *args, theta:Optional[np.ndarray]=None, diagnosis_theta:Optional[np.ndarray]=None, disturbance:Optional[np.ndarray]=None, **kwargs) -> np.ndarray:
         """
         Jacobian of system's model: df/dx for x = x_prev, u = u_prev
         """
+        if diagnosis_theta is not None:
+            theta = diagnosis_theta
         return self.revolt_dynamics.Ad(x, u, theta if theta is not None else np.ones((6,)), disturbance if disturbance is not None else np.zeros((3,)))
     
     def h(self, x:np.ndarray, *args, **kwargs) -> np.ndarray:
@@ -91,6 +95,7 @@ class StateEstimatorEKF(IExtendedKalmanFilter):
 
     
 if __name__ == "__main__":
+    from python_vehicle_simulator.lib.weather import Wind, Current
     Q = np.eye(18, 18)
     R = np.eye(9, 9)
     x0 = np.ones((18,)) * 0.1
@@ -106,4 +111,4 @@ if __name__ == "__main__":
     )
 
 
-    print(state_estimator.predict(np.array(6*[0])))
+    print(state_estimator.predict(np.array(6*[0]),Wind(0, 0), Current(0, 0)))

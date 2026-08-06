@@ -62,7 +62,7 @@ def register_model(name: str, model_cls: type[BaseFaultEstimatorNN]) -> None:
 
 def create_model(cfg: dict[str, Any]) -> BaseFaultEstimatorNN:
 	model_cfg = cfg["model"]
-	features_cfg = cfg["data"]["features"]
+	features_cfg = cfg["dataset"]["features"]
 
 	model_name = str(model_cfg["name"])
 	if model_name not in MODEL_REGISTRY:
@@ -95,7 +95,7 @@ if __name__ == "__main__":
 	print(f"Registry: {registry}")
 	
 	parser = argparse.ArgumentParser(description="Sanity check: load config, instantiate model, forward pass")
-	parser.add_argument("--config", default="configs/base.yaml", help="Config file path (default: configs/base.yaml)")
+	parser.add_argument("--config", "-c", default="configs/base.yaml", help="Config file path (default: configs/base.yaml)")
 	args = parser.parse_args()
 	
 	cfg = load_config(Path(args.config))

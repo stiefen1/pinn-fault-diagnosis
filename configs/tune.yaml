@@ -15,15 +15,14 @@ project:
   experiment_name: train_baseline_v1
   tags: [pinn, fault-diagnosis, train]
 
-data:
-  datasets:
-    format: npz
-    train_path: 
-      - data/train/fault_identification_dataset_v1.npz
-      - data/train/fault_identification_dataset_aux_1.npz
-      - data/train/fault_identification_dataset_aux_2.npz
-    val_path: data/validation/fault_identification_dataset_v1.npz
-    test_path: data/generated/fault_identification_dataset_v1.npz
+dataset:
+  format: npz
+  train_path: 
+    - data/train/fault_identification_dataset_v1.npz
+    - data/train/fault_identification_dataset_aux_1.npz
+    - data/train/fault_identification_dataset_aux_2.npz
+  val_path: data/validation/fault_identification_dataset_v1.npz
+  test_path: data/generated/fault_identification_dataset_v1.npz
 
   loading:
     shuffle_train: true

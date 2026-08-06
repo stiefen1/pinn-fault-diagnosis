@@ -29,15 +29,13 @@ io:
     flush_secs: 30
     filename_suffix: ""
 
-data:
-  datasets:
-    format: npz
-    train_path: 
-      - data/train/fault_identification_dataset_v1.npz
-      - data/train/fault_identification_dataset_aux_1.npz
-      - data/train/fault_identification_dataset_aux_2.npz
-    val_path: data/validation/fault_identification_dataset_v1.npz
-    test_path: data/generated/fault_identification_dataset_v1.npz
+dataset:
+  format: npz
+  train_path: 
+    - data/train/fault_identification_dataset_v1.npz
+    - data/train/fault_identification_dataset_aux_1.npz
+    - data/train/fault_identification_dataset_aux_2.npz
+  val_path: data/validation/fault_identification_dataset_v1.npz
 
   loading:
     shuffle_train: true
@@ -106,34 +104,29 @@ hardware:
   set_float32_matmul_precision: high
 
 hpc:
-  cluster: slurm
-  partition: gpu
-  account: your_account
-  qos: normal
-  time: "24:00:00"
+  partition: GPUQ           # GPUQ | CPUQ
+  time: "12:00:00" 
+  ntasks: 1
   nodes: 1
-  ntasks_per_node: 1
-  cpus_per_task: 16
-  gpus_per_node: 1
-  mem: 64G
+  cpus_per_task: 10
+  gpus: 1
+  mem: 32G
+
+  slurm_script:
+    enabled: true # Launch done through a slurm file
+    output_dir: slurm_files/
+    job_name: demo_array
 
   environment:
     modules:
-      - cuda/12.1
-      - gcc/11.3
+      - Miniconda3/24.7.1-0
     conda_env: pinn-fault-diagnosis
 
-  launcher:
-    kind: torchrun
-    command: >
-      torchrun --nproc_per_node=${hardware.gpus}
-      -m src.train.train
-      --config configs/train.yaml
-
-  slurm_script:
+  array:
     enabled: true
-    output_dir: slurm_logs/
-    job_name: pinn_fault_diag_train
-    extra_sbatch_args:
-      - "--constraint=a100|h100"
-      - "--exclusive"
+    params: # Launch one training for each combination of parameters
+      rl.alg.hyperparams.learning_rate: [0.004, 0.008, 0.016, 0.032, 0.064, 0.128, 0.256]      
+
+  launcher:
+    kind: python
+    command: python -m src.rl.train -c configs/train_cluster.yaml
