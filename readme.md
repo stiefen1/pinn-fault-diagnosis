@@ -57,12 +57,12 @@ After installing the code as explained before on your computer, you can simply r
 - `python -m src.dataset.generator -c configs/dataset.yaml`
 
 ## Running scripts on the HPC
-After installing the code as explained before in your personal session **on the cluster**, you can launch jobs (dataset generation or training) on it using the `scripts/launch_slurm.py` file:
+After installing the code as explained before in your personal session **on the cluster**, you can launch jobs (dataset generation or training) on it using the [`scripts/launch_slurm.py`](scripts/launch_slurm.py) file:
 - `python -m scripts.launch_slurm -c configs/train.yaml --submit`
 - `python -m scripts.launch_slurm -c configs/dataset.yaml --submit`
 
 ## Generating Dataset
-This feature is mainly done through the FaultIdentificationDatasetGenerator class located in ```src/dataset/generator.py```. The most important entries of the associated configuration file are:
+This feature is mainly done through the FaultIdentificationDatasetGenerator class located in [`src/dataset/generator.py`](src/dataset/generator.py). The most important entries of the associated configuration file are:
 - **episodes** : Describes how large we want the dataset to be
 - **dataset** : Where to save the resulting data
 - **env** : What are the environmental disturbances acting on the vessel throughout simulations
@@ -72,7 +72,7 @@ To generate a dataset based on a given configuration file, simply run:
 ```
 python -m src.dataset.generator -c <path_to_config>
 ```
-Where <path_to_config> must be a path starting from the base folder of this repository to a valid .yaml file (e.g. configs/dataset.yaml).
+Where <path_to_config> must be a path starting from the base folder of this repository to a valid .yaml file (e.g. ['configs/dataset.yaml'](configs/dataset.yaml)).
 
 ### Side note on dataset generation
 In system identification (sysid), an important part of the job is to find control commands that make the identification of unknown parameters easier. In non-linear systems, applying different control commands can result in different observability conditions for the parameters to be estimated. The direct consequence is that the same fault can be more challenging (or even impossible) to detect in some situations. When generating a fault identification dataset, it's not only important to cover a wide range of states to avoid out-of-distribution (OOD) samples, but also to make sure we train our system in both easy and challenging configurations. 
@@ -96,7 +96,7 @@ All the NN architecture to be tested must inherit from the base class `BaseFault
 
 
 ## Training & Validation
-Once your new architecture is ready and you have enough data, it's time for training and validation. You can setup this step using a configuration file (.yaml), as before, and run the `src/train.py` script:
+Once your new architecture is ready and you have enough data, it's time for training and validation. You can setup this step using a configuration file (.yaml), as before, and run the [`src/train.py`](src/train.py) script:
 ```
 python -m src.train -c <path_to_config>
 ``` 
