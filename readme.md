@@ -112,11 +112,11 @@ python -m scripts.launch_slurm -c <path_to_config> --submit
 # Things that will save your time
 - Everything related to the ReVolt's dynamics is implemented in the PythonVehicleSimulator submodule. You can find it in the ReVolt3Dynamics class in
 
-    [`submodules/PythonVehicleSimulator/src/python_vehicle_simulator/vehicles/revolt3.py`](/submodules/PythonVehicleSimulator/src/python_vehicle_simulator/vehicles/revolt3.py). 
+    [`submodules/PythonVehicleSimulator/src/python_vehicle_simulator/vehicles/revolt3.py`](https://github.com/stiefen1/PythonVehicleSimulator/blob/pinn-fault-diagnosis/src/python_vehicle_simulator/vehicles/revolt3.py). 
  
     This class inherits from a very important base class named `IDynamics` that you can find in
 
-    [`submodules/PythonVehicleSimulator/src/python_vehicle_simulator/lib/dynamics.py`](/submodules/PythonVehicleSimulator/src/python_vehicle_simulator/vehicles/revolt3.py). 
+    [`submodules/PythonVehicleSimulator/src/python_vehicle_simulator/lib/dynamics.py`](https://github.com/stiefen1/PythonVehicleSimulator/blob/pinn-fault-diagnosis/src/python_vehicle_simulator/lib/dynamics.py). 
     
     And `IDynamics` is important because it gives you access to both continuous and discrete time dynamics, as well as jacobians w.r.t states, control inputs and fault parameters of the model. In the context of PINNs, this will be of huge interest.
     
