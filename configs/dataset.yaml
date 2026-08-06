@@ -35,6 +35,10 @@ hpc:
       - Miniconda3/24.7.1-0
     conda_env: pinn-fault-diagnosis
 
+  launcher:
+    kind: python
+    command: python -m src.dataset.generate -c configs/dataset.yaml
+
 env:
   render: false
   wind:

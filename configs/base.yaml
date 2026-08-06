@@ -54,10 +54,6 @@ hpc:
   array:
     enabled: false
 
-  launcher:
-    kind: python
-    command: python -m src.rl.train -c configs/train_local.yaml
-
   slurm_script:
     enabled: true # Launch done through a slurm file
     output_dir: slurm_logs/
