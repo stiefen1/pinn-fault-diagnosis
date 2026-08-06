@@ -175,7 +175,7 @@ def train(cfg: dict) -> float:
 			writer.add_scalar("loss/train", train_loss, epoch)
 			writer.add_scalar("loss/val", val_loss, epoch)
 
-		print(f"epoch={epoch}/{max_epochs} | train_loss ({cfg["loss"]["supervised"]["name"]})={train_loss:.6f} | val_loss={val_loss:.6f} | lr={optimizer.param_groups[0]['lr']:.3e}")
+		print(f"epoch={epoch}/{max_epochs} | train_loss ({cfg['loss']['supervised']['name']})={train_loss:.6f} | val_loss={val_loss:.6f} | lr={optimizer.param_groups[0]['lr']:.3e}")
 
 		improved = val_loss < (best_val - min_delta)
 		if improved:
