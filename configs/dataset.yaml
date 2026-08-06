@@ -14,7 +14,7 @@ episodes:
   num_workers: 8 # number of parallel CPU workers (1 = sequential)
 
 dataset:
-  save_dir: data/train # location to save dataset
+  save_dir: data/validation # location to save dataset
   file_name: fault_identification_dataset_aux_2.npz
 
 hpc:

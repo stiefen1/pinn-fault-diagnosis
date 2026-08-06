@@ -32,10 +32,8 @@ io:
 dataset:
   format: npz
   train_path: 
-    - data/train/fault_identification_dataset_v1.npz
-    - data/train/fault_identification_dataset_aux_1.npz
     - data/train/fault_identification_dataset_aux_2.npz
-  val_path: data/validation/fault_identification_dataset_v1.npz
+  val_path: data/validation/fault_identification_dataset_aux_2.npz
 
   loading:
     shuffle_train: true
@@ -110,7 +108,7 @@ hpc:
   nodes: 1
   cpus_per_task: 10
   gpus: 1
-  mem: 32G
+  mem: 64G
 
   slurm_script:
     enabled: true # Launch done through a slurm file
@@ -129,4 +127,4 @@ hpc:
 
   launcher:
     kind: python
-    command: python -m src.rl.train -c configs/train_cluster.yaml
+    command: python -m src.train -c configs/train.yaml
