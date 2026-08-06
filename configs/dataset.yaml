@@ -9,9 +9,9 @@ project:
   experiment_name: generate_dataset_v1
 
 episodes:
-  N: 10 # number of episodes to build the dataset
+  N: 1000 # number of episodes to build the dataset
   max_steps_per_episode: 500 # total number of simulation steps for a single episode
-  num_workers: 4 # number of parallel CPU workers (1 = sequential)
+  num_workers: 8 # number of parallel CPU workers (1 = sequential)
 
 dataset:
   save_dir: data/train # location to save dataset
