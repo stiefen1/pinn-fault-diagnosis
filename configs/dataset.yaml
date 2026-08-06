@@ -37,7 +37,7 @@ hpc:
 
   launcher:
     kind: python
-    command: python -m src.dataset.generate -c configs/dataset.yaml
+    command: python -m src.dataset.generator -c configs/dataset.yaml
 
 env:
   render: false
