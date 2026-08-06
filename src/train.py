@@ -1,4 +1,6 @@
 import argparse
+import json
+import os
 from pathlib import Path
 
 import torch
@@ -235,11 +237,26 @@ def main() -> None:
 		metavar="key.path=value",
 		help="Override config values, e.g. --set optimizer.lr=1e-4 train.max_epochs=100",
 	)
+	parser.add_argument(
+		"--combinations",
+		type=str,
+		default=None,
+		metavar="PATH",
+		help="JSON file of hyperparameter combinations for SLURM array jobs. "
+			 "The row at $SLURM_ARRAY_TASK_ID is applied as config overrides.",
+	)
 	args = parser.parse_args()
 
 	cfg = load_config(Path(args.config).resolve())
 	if args.set:
 		cfg = apply_overrides(cfg, args.set)
+	if args.combinations:
+		task_id = int(os.environ.get("SLURM_ARRAY_TASK_ID", 0))
+		combos = json.loads(Path(args.combinations).read_text())
+		combo = combos[task_id]
+		overrides = [f"{k}={v}" for k, v in combo.items()]
+		cfg = apply_overrides(cfg, overrides)
+		print(f"[SLURM array task {task_id}] Applying overrides: {overrides}")
 	train(cfg)
 
 
