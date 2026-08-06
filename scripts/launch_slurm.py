@@ -165,11 +165,6 @@ def main() -> None:
     args = parser.parse_args()
 
     cfg = load_config(Path(args.config))
-
-    if not cfg.get("hpc", {}).get("slurm_script", {}).get("enabled", True):
-        print("hpc.slurm_script.enabled is false — nothing to do.")
-        return
-
     script = build_slurm_script(cfg)
 
     if args.dry_run:

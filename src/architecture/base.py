@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 import torch.nn as nn
-from torch import Tensor
+from torch import Tensor, load
 
 from src.utils.builders import ACTIVATION_CLASSES
 
@@ -70,20 +70,24 @@ def create_model(cfg: dict[str, Any]) -> BaseFaultEstimatorNN:
 		raise ValueError(f"Unknown model '{model_name}'. Available: {available}")
 
 	model_cls = MODEL_REGISTRY[model_name]
-	return model_cls(
+	model = model_cls(
 		nx=int(features_cfg["nx"]),
 		nu=int(features_cfg["nu"]),
 		n_samples=int(features_cfg["n_samples"]),
 		ntheta=int(features_cfg["ntheta"]),
 		architecture_cfg=model_cfg["architecture"],
 	)
+	resume_from = cfg["io"].get("resume_from", None)
+	if resume_from is not None:
+		ckpt = load(resume_from, map_location="cpu", weights_only=True)
+		model.load_state_dict(ckpt["model_state_dict"])
+		print(f"Loaded weights from: {resume_from}")
+	return model
 
 
 if __name__ == "__main__":
-	import argparse
-	import sys
+	import argparse, sys, torch
 	from pathlib import Path
-	import torch
 	
 	# Import models BEFORE anything else to populate registry
 	import src.architecture.mlp  # noqa

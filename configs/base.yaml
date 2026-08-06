@@ -7,7 +7,7 @@ project:
   name: pinn-fault-diagnosis
   task: fault_estimation
   output_root: runs/
-  experiment_name: baseline
+  experiment_name: default
   tags: [pinn, fault-diagnosis]
 
 dataset:
@@ -16,6 +16,19 @@ dataset:
     nu: 6
     ntheta: 6
     n_samples: 1
+
+io:
+  resume_from: null
+  checkpoint_dir: checkpoints/
+  save_every_n_epochs: 10
+  keep_last_k: 3
+  log_every_n_steps: 0
+
+  # TensorBoard-only logging.
+  logging:
+    enabled: true
+    log_dir: tb_logs/default
+    flush_secs: 30
 
 seed:
   global: 42

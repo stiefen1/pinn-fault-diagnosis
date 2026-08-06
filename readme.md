@@ -11,10 +11,37 @@ This repo provides basic features to setup, train and evaluate physics-informed 
 
 
 # TODOs
-## Implement and train a PINN for actuators fault estimation
+- Implement and train a PINN for actuators fault estimation
+- Write a paper
+- Win award for your paper
+- Win Nobel Prize for your paper
+- Chill
 
 
 # Installation
+```
+git clone --recurse-submodules git@github.com:stiefen1/pinn-fault-diagnosis.git
+```
+
+Then create your conda environment using
+
+```
+conda env create -f env.yml
+```
+and activate it with 
+```
+conda activate pinn-fault-diagnosis
+```
+Install PyTorch 
+
+- On the cluster: ```pip install torch --index-url https://download.pytorch.org/whl/cu124```
+- On your local machine (CPU-only): ```pip install torch=2.12.0```
+
+Then install the submodules with
+
+```
+pip install -e submodules/PythonVehicleSimulator
+```
 
 # Setting up NTNU's High Performance Computing (HPC) unit
 ## Request access
@@ -22,7 +49,18 @@ This repo provides basic features to setup, train and evaluate physics-informed 
 ## Launch your jobs
 
 # Usage
-Most of the features rely heavily on high-level configuration files (.yaml).
+All the code provided in this repository is made to be runnable both from your local machine and on NTNU's HPC. Most of the features rely heavily on high-level configuration files (.yaml).
+
+## Running scripts locally
+After installing the code as explained before on your computer, you can simply run scripts from the base folder of this repo in command line. Here are the most important ones:
+- `python -m src.train -c configs/train.yaml`
+- `python -m src.dataset.generator -c configs/dataset.yaml`
+
+## Running scripts on the HPC
+After installing the code as explained before in your personal session **on the cluster**, you can launch jobs (dataset generation or training) on it using the `scripts/launch_slurm.py` file:
+- `python -m scripts.launch_slurm -c configs/train.yaml --submit`
+- `python -m scripts.launch_slurm -c configs/dataset.yaml --submit`
+
 ## Generating Dataset
 This feature is mainly done through the FaultIdentificationDatasetGenerator class located in ```src/dataset/generator.py```. The most important entries of the associated configuration file are:
 - **episodes** : Describes how large we want the dataset to be
@@ -50,8 +88,25 @@ The complete list of available signals is available in [`src/excitation/signals.
 
 To enable control commands from the NMPC controller, simply set vessel.control.enabled to **true**. If an auxiliary signals was requested as well, the resulting control commands will be the sum of both. This could be useful e.g. to mix NMPC control commands with gaussian noise to obtain a more diverse dataset of excitation signals. 
 
+## Designing a new NN architecture
+All the NN architecture to be tested must inherit from the base class `BaseFaultEstimatorNN`, located in [`src/architecture/base.py`](src/architecture/base.py), to ensure compliance with other parts of the code. We provide a simple Multi-Layer Perceptron (MLP) architecture in [`src/architecture/mlp.py`](src/architecture/mlp.py) as an example to use this base class. The idea is that any new architecture must be a new class that inherit from `BaseFaultEstimatorNN`. To actually implement this new architecture, you must implement two methods:
+
+- **init_architecture(self) -> None**: Setup the type and number of layers of the NN and store it as a [nn.Sequential](https://docs.pytorch.org/docs/2.12/generated/torch.nn.Sequential.html) object.
+- **forward(self, x: Tensor) -> Tensor**: Compute the forward pass through the NN
+
 
 ## Training & Validation
+Once your new architecture is ready and you have enough data, it's time for training and validation. You can setup this step using a configuration file (.yaml), as before, and run the `src/train.py` script:
+```
+python -m src.train -c <path_to_config>
+``` 
+
+This command will train your model directly on your machine. When dealing with large models or huge datasets, it is better to exploit the HPC. To launch a training job on the HPC, you can simply run
+
+```
+python -m scripts.launch_slurm -c <path_to_config> --submit
+```
+
 ## Testing - TODO
 
 # Things that will save your time

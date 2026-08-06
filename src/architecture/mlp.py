@@ -2,8 +2,6 @@ import torch, torch.nn as nn
 from torch import Tensor
 from src.architecture.base import BaseFaultEstimatorNN, register_model
 from src.utils.builders import build_activation_fn
-
-
 class MLPFaultEstimator(BaseFaultEstimatorNN):
 	def init_architecture(self) -> None:
 		hidden_layers = list(self.architecture_cfg["hidden_layers"])
@@ -35,10 +33,7 @@ class MLPFaultEstimator(BaseFaultEstimatorNN):
 		x = self.flatten(x)
 		return self.architecture(x)
 
-
-# Keep the old name working if the config still uses it.
 register_model("MLPFaultEstimator", MLPFaultEstimator)
-
 
 if __name__ == "__main__":
 	device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"  # type: ignore

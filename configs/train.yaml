@@ -16,7 +16,7 @@ project:
   tags: [pinn, fault-diagnosis, train]
 
 io:
-  resume_from: null
+  resume_from: runs/train_baseline_v1/checkpoints/best.pt
   checkpoint_dir: checkpoints/
   save_every_n_epochs: 10
   keep_last_k: 3
@@ -27,13 +27,12 @@ io:
     enabled: true
     log_dir: tb_logs/train_baseline_v1
     flush_secs: 30
-    filename_suffix: ""
 
 dataset:
   format: npz
   train_path: 
-    - data/train/fault_identification_dataset_aux_2.npz
-  val_path: data/validation/fault_identification_dataset_aux_2.npz
+    - data/train/fault_identification_dataset_v1.npz
+  val_path: data/validation/fault_identification_dataset_v1.npz
 
   loading:
     shuffle_train: true
@@ -111,7 +110,6 @@ hpc:
   mem: 64G
 
   slurm_script:
-    enabled: true # Launch done through a slurm file
     output_dir: slurm_files/
     job_name: demo_array
 
