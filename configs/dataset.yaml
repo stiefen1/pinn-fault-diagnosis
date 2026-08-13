@@ -15,7 +15,7 @@ episodes:
 
 dataset:
   save_dir: data/validation # location to save dataset
-  file_name: fault_identification_dataset_aux_2.npz
+  file_name: fault_identification_dataset.npz
 
 hpc:
   partition: CPUQ           # There's not point in using GPUs here

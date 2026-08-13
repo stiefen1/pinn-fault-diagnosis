@@ -12,11 +12,11 @@ config:
 
 project:
   mode: train
-  experiment_name: train_baseline_v1
+  experiment_name: train_demo
   tags: [pinn, fault-diagnosis, train]
 
 io:
-  resume_from: null # runs/train_baseline_v1/checkpoints/best.pt
+  resume_from: null # runs/train_demo/checkpoints/best.pt
   checkpoint_dir: checkpoints/
   save_every_n_epochs: 10
   keep_last_k: 3
@@ -25,14 +25,14 @@ io:
   # TensorBoard-only logging.
   logging:
     enabled: true
-    log_dir: tb_logs/train_baseline_v1
+    log_dir: tb_logs/train_demo
     flush_secs: 30
 
 dataset:
   format: npz
   train_path: 
-    - data/train/fault_identification_dataset_v1.npz
-  val_path: data/validation/fault_identification_dataset_v1.npz
+    - data/train/fault_identification_dataset.npz
+  val_path: data/validation/fault_identification_dataset.npz
 
   loading:
     shuffle_train: true
