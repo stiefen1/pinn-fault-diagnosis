@@ -257,6 +257,16 @@ def main() -> None:
 		overrides = [f"{k}={v}" for k, v in combo.items()]
 		cfg = apply_overrides(cfg, overrides)
 		print(f"[SLURM array task {task_id}] Applying overrides: {overrides}")
+
+		# Give each array task its own subdirectory so runs don't clobber each
+		# other's checkpoints and TensorBoard can distinguish them.
+		task_slug = f"task_{task_id:04d}"
+		cfg["project"]["experiment_name"] = (
+			str(cfg["project"]["experiment_name"]) + "/" + task_slug
+		)
+		cfg["io"]["logging"]["log_dir"] = (
+			str(cfg["io"]["logging"]["log_dir"]) + "/" + task_slug
+		)
 	train(cfg)
 
 

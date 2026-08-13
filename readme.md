@@ -6,16 +6,16 @@ This repo provides basic features to setup, train and evaluate physics-informed 
 - **excitation:** A collection of common excitation signals to be used as actuator commands when generating a new dataset
 - **tune:** (under development) Implementation of optuna for hyperparameters tuning
 - **utils:** A collection of functions that might be useful across different parts of the code
-- **vessel:** GNC architecture for the ReVolt vessel. Note that simulations are handled by the PythonVehicleSimulator submodule.
+- **vessel:** GNC architecture for the ReVolt vessel. Note that simulations are handled by the `PythonVehicleSimulator` submodule.
 
-
+This repository is still in early development. If you catch any bug / issue, please report it in the *Issues* tab. 
 
 # TODOs
-- Implement and train a PINN for actuators fault estimation
+- Design, implement and train a PINN for actuators fault estimation
 - Write a paper
 - Win award for your paper
 - Win Nobel Prize for your paper
-- Chill
+- Relax
 
 
 # Installation
@@ -23,7 +23,7 @@ This repo provides basic features to setup, train and evaluate physics-informed 
 git clone --recurse-submodules git@github.com:stiefen1/pinn-fault-diagnosis.git
 ```
 
-Then create your conda environment using
+Make sure each submodule is set to branch ```pinn-fault-diagnosis``` and then create your conda environment based on the provided ```env.yml```:
 
 ```
 conda env create -f env.yml
@@ -37,7 +37,7 @@ Install PyTorch
 - On the cluster: ```pip install torch --index-url https://download.pytorch.org/whl/cu124```
 - On your local machine (CPU-only): ```pip install torch=2.12.0```
 
-Then install the submodules with
+Then install the submodule with
 
 ```
 pip install -e submodules/PythonVehicleSimulator
@@ -45,8 +45,18 @@ pip install -e submodules/PythonVehicleSimulator
 
 # Setting up NTNU's High Performance Computing (HPC) unit
 ## Request access
+To get access to the [HPC unit](https://www.hpc.ntnu.no/idun/how-to-get-access-to-idun/), send an e-mail to support@itk.ntnu.no mentioning who you are and why you need access to it and put your main supervisor and I as CC.
 ## Connect
+Once access was granted to you, open a terminal and run
+```
+ssh <username>@idun-login1.hpc.ntnu.no
+```
 ## Launch your jobs
+Once you've installed this repo on the HPC, a training session can be launched using:
+
+```python -m scripts.launch_slurm.py -c configs/train.yaml --submit```
+
+You can check the status of your launched jobs using `squeue --me`, or cancel it with `scancel <jobid>`. To ease your work, we highly recommend you to mount your personal folder from the hpc to easily access it from your local machine. Among other things, this will allow you to load weights trained on the cluster directly from your personal computer. To do so, please follow the instructions of **Method 2** [here](https://www.hpc.ntnu.no/idun/documentation/transferring-data/#ib-toc-anchor-4).
 
 # Usage
 All the code provided in this repository is made to be runnable both from your local machine and on NTNU's HPC. Most of the features rely heavily on high-level configuration files (.yaml).
@@ -56,10 +66,26 @@ After installing the code as explained before on your computer, you can simply r
 - `python -m src.train -c configs/train.yaml`
 - `python -m src.dataset.generator -c configs/dataset.yaml`
 
+### Tracking performance along learning (Tensorboard)
+Open another terminal and launch
+```tensorboard --logdir <path_to_your_log_dir>```
+make sure you replace ```<path_to_your_log_dir>``` by a valid logging directory (e.g. `.\tb_logs\demo\`).
+
 ## Running scripts on the HPC
 After installing the code as explained before in your personal session **on the cluster**, you can launch jobs (dataset generation or training) on it using the [`scripts/launch_slurm.py`](scripts/launch_slurm.py) file:
 - `python -m scripts.launch_slurm -c configs/train.yaml --submit`
 - `python -m scripts.launch_slurm -c configs/dataset.yaml --submit`
+
+### Tracking performance along learning (Tensorboard)
+Open another terminal on the cluster and run
+```
+tensorboard --logdir <path_to_your_log_dir> --port 6006
+```
+Make sure you replace ```<path_to_your_log_dir>``` by a valid logging directory (e.g. `.\tb_logs\demo\`). On your laptop, open an ssh tunnel that forwards port 6006 to your local machine:
+```
+ssh -L 6006:localhost:6006 <username>@idun-login1.hpc.ntnu.no
+```
+And then open ```http://localhost:6006```
 
 ## Generating Dataset
 This feature is mainly done through the FaultIdentificationDatasetGenerator class located in [`src/dataset/generator.py`](src/dataset/generator.py). The most important entries of the associated configuration file are:
@@ -121,11 +147,32 @@ python -m scripts.launch_slurm -c <path_to_config> --submit
     And `IDynamics` is important because it gives you access to both continuous and discrete time dynamics, as well as jacobians w.r.t states, control inputs and fault parameters of the model. In the context of PINNs, this will be of huge interest.
     
 
-
 # Ressources
 ## Fault Modelling
 See [`ReVolt_Model_with_faults.pdf`](ReVolt_Model_with_faults.pdf).
 ## Papers
+
+
+General about PINNs:
+- [*Physics Informed Deep Learning (Part I): Data-driven Solutions of Nonlinear Partial Differential Equations*](https://arxiv.org/abs/1711.10561) (2017, **Note:** This is the paper introducing PINNs for the first time)
+
+PINNs applied to maritime systems:
+- [*Physics-Informed Neural Networks for Robust System Identification of Ship Roll Dynamics With Noise Resilience*](https://ieeexplore.ieee.org/document/10892333) (2025, **Note:** In this one they estimate paramters that are differentiable; this is not our case, which will probably be a good motivation for the proposed hybrid architecture)
+
+Other methods for online parameter estimation:
+
+Artificial Neural Networks:
+- [*Study on blade fault diagnosis of free flying UAV based on multiparameter and deep learning method*](https://iopscience.iop.org/article/10.1088/2631-8695/acfbd9) (2023)
+
+Parity Space:
+- [*Fault estimation for a quadrotor unmanned aerial vehicle by integrating the parity space approach with recursive least squares*](https://journals.sagepub.com/doi/10.1177/0954410017691794) (2017)
+
+Particle Filter, also called Sequential Monte Carlo (SMC) methods: 
+- [*Particle Filter for Fault Diagnosis and Robust Navigation of Underwater Robot*](https://ieeexplore.ieee.org/document/6736066) (2014)
+
+Moving Horizon Estimation:
+- [*Moving Horizon Estimation of Faults in Renewable Microgrids*](https://www.sciencedirect.com/science/article/pii/S240589631930165X?pes=vor&utm_source=clarivate&getft_integrator=clarivate) (2019)
+
 ## Videos
 - Full course on physics-informed ML (Steve Brunton, UW): https://www.youtube.com/watch?v=JoFW2uSd3Uo&list=PLMrJAkhIeNNQ0BaKuBKY43k4xMo6NSbBa
 - Introduction to PINNs (Ben Moseley, ETH) : https://youtu.be/D-F7BYRhAkQ?si=ZPk7hf2VSyl3BrJe

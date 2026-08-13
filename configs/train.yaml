@@ -121,7 +121,7 @@ hpc:
   array:
     enabled: true
     params: # Launch one training for each combination of parameters
-      rl.alg.hyperparams.learning_rate: [0.004, 0.008, 0.016, 0.032, 0.064, 0.128, 0.256]      
+      optimizer.lr: [0.001, 0.002, 0.004, 0.008, 0.016, 0.032, 0.064]      
 
   launcher:
     kind: python
