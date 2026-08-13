@@ -41,9 +41,11 @@ class NavigationRevolt(INavigation):
             seed: Optional[int] = None,
             sensors: Dict[str, ISensor] = {},
             vessel_params: RevoltParameters3DOF = RevoltParameters3DOF(),
+            perfect_meas: bool = False,
             **kwargs
     ):
         self.vessel_params = vessel_params
+        self.perfect_meas = perfect_meas
 
         self.state_estimator_params = {
             'Q': Q_se,
@@ -67,18 +69,22 @@ class NavigationRevolt(INavigation):
         return self.state_estimator.dp_mode
 
     def measure_states(self, states: npt.NDArray) -> npt.NDArray:
-        noise = self.np_random.multivariate_normal(np.array(9*[0]), R_REVOLT)
+        noise = self.np_random.multivariate_normal(np.array(9*[0]), R_REVOLT) * (not(self.perfect_meas))
         noisy_states = np.array([states[0], states[1], states[5], states[6], states[7], states[11], *states[12:15]]) + noise
         return noisy_states
 
     def measure_wind(self, wind: Wind) -> Wind:
-        # beta, norm = self.np_random.multivariate_normal(np.array([wind.beta, wind.norm]), R_WIND).flatten().tolist()
-        beta, norm = wind._beta_0, wind._norm_0 # assume measurement is just a constant value, e.g. no sensors onboard but access to a low-freq API 
+        if self.perfect_meas:
+            beta, norm = wind._beta, wind._norm
+        else:
+            beta, norm = wind._beta_0, wind._norm_0 # assume measurement is just a constant value, e.g. no sensors onboard but access to a low-freq API 
         return Wind(beta, norm) # EXTREMELY IMPORTANT TO CREATE A NEW OBJECT -> OTHERWISE INITIAL OBJECT WILL BE AFFECTED (MEMORY IS SHARED) 
     
     def measure_current(self, current: Current) -> Current:
-        # beta, norm = self.np_random.multivariate_normal(np.array([current.beta, current.norm]), R_CURRENT).flatten().tolist()
-        beta, norm = current._beta_0, current._norm_0 # assume measurement is just a constant value, e.g. no sensors onboard but access to a low-freq API
+        if self.perfect_meas:
+            beta, norm = current._beta, current._norm
+        else:
+            beta, norm = current._beta_0, current._norm_0 # assume measurement is just a constant value, e.g. no sensors onboard but access to a low-freq API
         return Current(beta, norm) # EXTREMELY IMPORTANT TO CREATE A NEW OBJECT -> OTHERWISE INITIAL OBJECT WILL BE AFFECTED (MEMORY IS SHARED)
         
     def __get__(self, states:np.ndarray, current:Current, wind:Wind, obstacles:List[Obstacle], target_vessels:List[IVessel],  control_commands: np.ndarray, *args, timestamp: Optional[datetime] = None, theta:Optional[np.ndarray]=None, **kwargs) -> Tuple[Dict, Dict]:

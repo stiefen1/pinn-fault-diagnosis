@@ -27,7 +27,7 @@ vessel = ReVolt3(
             horizon,
             dt,
             dp_mode=dp_mode,
-            singularity_weight=1e-4
+            singularity_weight=3e-4
         ),
         guidance=TrajectoryTrackingGuidance(
             PWLPath.sample(d_tot=500, max_turn_deg=90, seg_len_range=(3, 5), seed=42).smooth(3),
@@ -35,11 +35,11 @@ vessel = ReVolt3(
             dt,
             horizon            
         ),
-        navigation=NavigationRevolt(np.array(18*[0]), dt, dp_mode=dp_mode),
+        navigation=NavigationRevolt(np.array(18*[0]), dt, dp_mode=dp_mode, perfect_meas=True),
         diagnosis=ParticleFilterFaultDiagnosis(
             dt,
             n_particles=1000,
-            theta_process_std=0.01
+            theta_process_std=(0.01, 0.01, 0.01, 0.01)
         )
         # diagnosis=EKFFaultDiagnosis(
         #     dt, 
@@ -66,7 +66,7 @@ sim = Simulator(
         window_size=(6, 6)
     )
 
-sim.run(tf=500, render=True, store_data=True, theta=np.array([1, 1, 1, 0.5, 1, 1]))
+sim.run(tf=50, render=True, store_data=True, theta=np.array([1, 1, 1, 0.5, 1, 1]))
 
 # After calling plot_gnc_data_multi, add:
 nav_data = sim.simulation_data['gnc_data']['navigation']
