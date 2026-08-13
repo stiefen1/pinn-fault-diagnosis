@@ -65,6 +65,7 @@ def train_one_epoch(
 	log_every_n_steps: int,
 	writer: SummaryWriter | None,
 	global_step: int,
+	grad_clip_norm: float = 0.0,
 ) -> tuple[float, int]:
 	
 	# model was already sent to device earlier
@@ -83,6 +84,8 @@ def train_one_epoch(
 
 		# Optimization step
 		loss.backward()
+		if grad_clip_norm > 0.0:
+			torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip_norm)
 		optimizer.step()
 
 		bs = x.shape[0]
@@ -135,6 +138,7 @@ def train(cfg: dict) -> float:
 
 	train_cfg = cfg["train"]
 	max_epochs = int(train_cfg["max_epochs"])
+	grad_clip_norm = float(train_cfg.get("grad_clip_norm", 0.0))
 	early_stopping_cfg = train_cfg["early_stopping"]
 	early_stopping_enabled = bool(early_stopping_cfg["enabled"])
 	patience = int(early_stopping_cfg["patience"])
@@ -169,6 +173,7 @@ def train(cfg: dict) -> float:
 			log_every_n_steps=log_every_n_steps,
 			writer=writer,
 			global_step=global_step,
+			grad_clip_norm=grad_clip_norm,
 		)
 
 		val_loss = evaluate(model, val_loader, criterion, device)
@@ -260,7 +265,10 @@ def main() -> None:
 
 		# Give each array task its own subdirectory so runs don't clobber each
 		# other's checkpoints and TensorBoard can distinguish them.
-		task_slug = f"task_{task_id:04d}"
+		# Include param values in the slug so TensorBoard labels are self-describing
+		# (e.g. "task_0002_lr=0.004") without needing to look up combinations.json.
+		param_parts = [f"{k.split('.')[-1]}={v}" for k, v in combo.items()]
+		task_slug = f"task_{task_id:04d}_{'_'.join(param_parts)}"
 		cfg["project"]["experiment_name"] = (
 			str(cfg["project"]["experiment_name"]) + "/" + task_slug
 		)

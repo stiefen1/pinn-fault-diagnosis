@@ -36,14 +36,7 @@ seed:
   torch:
     benchmark: true
 
-hardware:
-  device: cuda                # cuda | cpu
-  gpus: 1
-  gpu_ids: [0]
-  num_nodes: 1
-
-  dataloader_workers_per_gpu: 8
-  set_float32_matmul_precision: high  # highest | high | medium
+device: cuda  # cuda | cpu
 
 hpc:
   partition: CPUQ           # GPUQ | CPUQ
@@ -53,11 +46,6 @@ hpc:
   cpus_per_task: 10
   gpus: 0
   mem: 32G
-
-  slurm_script:
-    enabled: false # Launch done through a slurm file
-    output_dir: slurm_files/
-    job_name: demo_array
 
   environment:
     modules:

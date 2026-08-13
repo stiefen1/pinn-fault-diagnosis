@@ -37,7 +37,6 @@ dataset:
     test_batch_size: 1024
 
 test:
-  enabled: true
   checkpoint: path            # best | last | path
   checkpoint_path: runs/train_baseline_v1/checkpoints/epoch_0290.pt # null
   metrics: [rmse, mae, r2]

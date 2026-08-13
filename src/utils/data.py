@@ -70,14 +70,17 @@ def make_loader(cfg: dict[str, Any], split: str) -> DataLoader:
 
     dataset = load_datasets(data_cfg[path_key])
     num_workers = int(batch_cfg.get("num_workers", 0))
-    requested_device = str(cfg.get("hardware", {}).get("device", "cuda")).lower()
+    requested_device = str(cfg.get("device", "cuda")).lower()
     pin_memory = (requested_device == "cuda" and torch.cuda.is_available())
+    persistent_workers = bool(batch_cfg.get("persistent_workers", False)) and num_workers > 0
+    prefetch_factor = int(batch_cfg.get("prefetch_factor", 2)) if num_workers > 0 else None
     return DataLoader(
         dataset,
         batch_size=int(batch_cfg.get(batch_key, default_batch)),
         shuffle=bool(load_cfg.get(f"shuffle_{split}", split == "train")),
         num_workers=num_workers,
         pin_memory=pin_memory,
-        persistent_workers=bool(batch_cfg.get("persistent_workers", False)) and num_workers > 0,
+        persistent_workers=persistent_workers,
+        prefetch_factor=prefetch_factor,
         drop_last=bool(load_cfg.get(f"drop_last_{split}", split == "train")),
     )

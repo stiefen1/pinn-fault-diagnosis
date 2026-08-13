@@ -67,7 +67,7 @@ def build_scheduler(optimizer: Optimizer, cfg: dict[str, Any], max_epochs: int) 
 
 def resolve_device(cfg: dict[str, Any], verbose: bool = True) -> torch.device:
     """Resolve device from config, fallback to CPU if CUDA unavailable."""
-    requested = str(cfg.get("hardware", {}).get("device", "cuda")).lower()
+    requested = str(cfg.get("device", "cuda")).lower()
     if requested == "cuda" and torch.cuda.is_available():
         device = torch.device("cuda")
     else:

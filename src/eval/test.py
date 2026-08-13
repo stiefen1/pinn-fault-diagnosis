@@ -91,11 +91,16 @@ def run_test(cfg: dict) -> None:
 		device=device,
 	)
 
+	test_cfg = cfg.get("test", {})
+	metrics = {str(m).lower() for m in test_cfg.get("metrics", ["rmse", "mae", "r2"])}
 	print(f"checkpoint={checkpoint_path}")
 	print(f"test_loss={test_loss:.6f}")
-	print(f"test_rmse={rmse:.6f}")
-	print(f"test_mae={mae:.6f}")
-	print(f"test_r2={r2:.6f}")
+	if "rmse" in metrics:
+		print(f"test_rmse={rmse:.6f}")
+	if "mae" in metrics:
+		print(f"test_mae={mae:.6f}")
+	if "r2" in metrics:
+		print(f"test_r2={r2:.6f}")
 
 	maybe_export_test_predictions(cfg, preds, targets)
 
