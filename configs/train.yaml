@@ -16,7 +16,7 @@ project:
   tags: [pinn, fault-diagnosis, train]
 
 io:
-  resume_from: runs/train_baseline_v1/checkpoints/best.pt
+  resume_from: null # runs/train_baseline_v1/checkpoints/best.pt
   checkpoint_dir: checkpoints/
   save_every_n_epochs: 10
   keep_last_k: 3
