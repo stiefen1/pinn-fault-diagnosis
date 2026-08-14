@@ -133,6 +133,31 @@ This command will train your model directly on your machine. When dealing with l
 python -m scripts.launch_slurm -c <path_to_config> --submit
 ```
 
+# Contributing to the repository
+To add your own contributions to this repository, create your own branch based on the `origin/master` branch:
+```
+git fetch origin
+git checkout -b <new-branch-name> origin/master
+```
+When applicable, the feature can be merged via a pull request. 
+
+If you need to modify one of the submodules, do it the same way, by creating a new branch with your name, but this time based on the `origin/pinn-fault-diagnosis`, e.g.
+
+```
+cd submodules/PythonVehicleSimulator
+git fetch origin
+git checkout -b <new-branch-name> origin/pinn-fault-diagnosis
+```
+After creating a new branch for one of the submodules, you need to update the main repo (this one, i.e. pinn-fault-diagnosis) to point to the correct branch, e.g.
+```
+cd ../.. # change directory to /pinn-fault-diagnosis
+git submodule set-branch --branch <new-branch-name> submodules/PythonVehicleSimulator
+git submodule sync
+git submodule update --init --remote
+git add .gitmodules submodules/PythonVehicleSimulator
+git commit -m "Update submodule to branch <new-branch-name>
+```
+
 ## Testing - TODO
 
 # Things that will save your time
