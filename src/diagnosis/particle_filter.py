@@ -2,6 +2,7 @@ from python_vehicle_simulator.lib.weather import Wind, Current
 from src.diagnosis.base import RevoltFaultDiagnosis
 
 from typing import Tuple, Dict, Optional
+from copy import deepcopy
 
 import numpy as np
 
@@ -34,30 +35,49 @@ class ParticleFilterFaultDiagnosis(RevoltFaultDiagnosis):
             dp_mode: bool = False,
             theta_process_std: Tuple[float, ...] = (0.005, 0.005, 0.005, 0.005),
             R: np.ndarray = R_PF_DIAGNOSIS,
+            sparsity_weight: float = 1.0,
+            mean_reversion_rate: float = 0.0,
+            mean_reversion_exponent: int = 10,
             **kwargs
     ):
         if states is None:
             states = np.array(10*[0.0] + 4*[1.0])
+
+        self.z_residuals = 0.0
 
         super().__init__(states, dt, *args, dp_mode=dp_mode, **kwargs)
 
         self.n_particles = n_particles
         self.theta_process_std = np.array(theta_process_std)
         self.R_inv = np.linalg.inv(R)
+        self.sparsity_weight = sparsity_weight
+        self.mean_reversion_rate = mean_reversion_rate
+        self.mean_reversion_exponent = mean_reversion_exponent
 
         theta0 = self.self_theta_from_self_x(states)
-        self.particles = np.clip(
-            theta0 + np.random.uniform(-0.1, 0.1, (n_particles, 4)),
-            0, 1
-        )
+
+        # Structured initialization: divide particles evenly across fault hypotheses.
+        # Hypothesis 0 = healthy (all theta near 1); hypothesis k = fault in component k-1.
+        n_theta = 4
+        n_hyp = n_theta + 1
+        particles = np.ones((n_particles, n_theta))
+        for h in range(n_hyp):
+            start = (h * n_particles) // n_hyp
+            end = ((h + 1) * n_particles) // n_hyp
+            block = np.clip(
+                np.ones((end - start, n_theta)) + np.random.uniform(-0.02, 0.02, (end - start, n_theta)),
+                0.0, 1.0,
+            )
+            if h > 0:  # single-fault hypothesis: component h-1 drawn from full range
+                block[:, h - 1] = np.random.uniform(0.0, 1.0, end - start)
+            particles[start:end] = block
+        self.particles = particles
         self.weights = np.ones(n_particles) / n_particles
 
         # Per-particle physical state — the SMC² addition.
         # Each particle evolves its own state so that likelihood information
         # accumulates over time rather than being evaluated from a single mean.
         self.state_estimates = np.tile(states[:10], (n_particles, 1))  # (N, 10)
-
-    # --- coordinate conversions (same as EKF) ---
 
     @staticmethod
     def self_theta_from_self_x(x: np.ndarray) -> np.ndarray:
@@ -85,30 +105,7 @@ class ParticleFilterFaultDiagnosis(RevoltFaultDiagnosis):
 
     @staticmethod
     def self_x_from_ext_x(x: np.ndarray, theta: np.ndarray) -> np.ndarray:
-        return np.concatenate([x[0:2], x[5:8], x[11:14], x[15:17], theta])
-
-    # --- helpers ---
-
-    def _compute_disturbance(self, ext_state: np.ndarray, wind: Wind, current: Current) -> np.ndarray:
-        """Wind + current disturbance force from a single 18-dim ext state."""
-        if self.dynamics.vessel_params is None:
-            return np.zeros(3)
-        p = self.dynamics.vessel_params
-        psi, u_vel, v_vel, r = ext_state[5], ext_state[6], ext_state[7], ext_state[11]
-        uw, vw = wind.u(psi), wind.v(psi)
-        u_rw, v_rw = uw - u_vel, vw - v_vel
-        gamma_w = wind.gamma_w(psi)
-        wind_rw2 = u_rw**2 + v_rw**2
-        tau_coeff = 0.5 * wind.get_air_density() * wind_rw2
-        tau_w = np.array([
-            tau_coeff * (-p.cx * np.cos(gamma_w)) * p.proj_area_f,
-            tau_coeff * ( p.cy * np.sin(gamma_w)) * p.proj_area_l,
-            tau_coeff * ( p.cn * np.sin(2 * gamma_w)) * p.proj_area_l * p.loa,
-        ])
-        uvr = np.array([u_vel, v_vel, r])
-        v_c = np.array([current.u(psi), current.v(psi), 0.0])
-        tau_c = p.CA(uvr) @ uvr - p.CA(uvr - v_c) @ (uvr - v_c) + p.D @ v_c
-        return tau_c + tau_w
+        return np.concatenate([x[0:2], x[5:8], x[11:14], x[15:17], theta])    
 
     @staticmethod
     def _systematic_resample(weights: np.ndarray) -> np.ndarray:
@@ -117,18 +114,32 @@ class ParticleFilterFaultDiagnosis(RevoltFaultDiagnosis):
         positions = (np.arange(N) + np.random.uniform(0, 1)) / N
         return np.searchsorted(np.cumsum(weights), positions)
 
-    # --- main filter step ---
-
     def __get__(self, states: np.ndarray, control_commands: np.ndarray, measurements: np.ndarray,
-                wind: Wind, current: Current, *args, **kwargs) -> Tuple[Dict, Dict]:
+                wind: Wind, current: Current, prev_navigation: Dict, *args, **kwargs) -> Tuple[Dict, Dict]:
+        """
+        states: x_k
+        control_commands: u_k-1
+        measurements: y_k
+        """
+        prev_wind = prev_navigation["wind"] if "wind" in prev_navigation.keys() else deepcopy(wind)
+        prev_current = prev_navigation["current"] if "current" in prev_navigation.keys() else deepcopy(current)        
+
         z = self.self_meas_from_ext_meas(measurements)  # (8,)
         N = self.n_particles
 
-        # 1. Predict: reflected random walk on theta particles
-        perturbation = np.random.normal(0, self.theta_process_std, self.particles.shape)
-        proposed = self.particles + perturbation
-        proposed = np.where(proposed > 1.0, 2.0 - proposed, proposed)
-        proposed = np.where(proposed < 0.0, -proposed, proposed)
+        # 1. Predict: component-wise random walk on theta with nonlinear mean-reversion.
+        # Drift = κ * θ^p * (1 - θ): peaks at θ* = p/(p+1), so p=9 → peak at θ=0.9.
+        # Near-healthy components (θ≈0.9) feel the strongest pull back to 1; -> IT'S TO AVOID STEADY-STATE ERROR WHERE theta_healthy \approx 0.95
+        # genuinely faulty components (θ≈0) feel almost no restoring force.
+        chosen = np.random.randint(0, 4, N)  # (N,) — index of component to perturb
+        drift = self.mean_reversion_rate * (self.particles ** self.mean_reversion_exponent) * (1.0 - self.particles)
+        perturbation = np.zeros((N, 4))
+        perturbation[np.arange(N), chosen] = np.random.normal(
+            0, self.theta_process_std[chosen]
+        )
+        proposed = self.particles + drift + perturbation
+        # proposed = np.where(proposed > 1.0, 2.0 - proposed, proposed)
+        # proposed = np.where(proposed < 0.0, -proposed, proposed)
         self.particles = np.clip(proposed, 0.0, 1.0)  # safety clip for extreme double-bounce
 
         # Build per-particle ext states (N, 18) from per-particle physical states (N, 10)
@@ -142,7 +153,7 @@ class ParticleFilterFaultDiagnosis(RevoltFaultDiagnosis):
         # disturbance is smooth so the mean is a good representative)
         mean_ext = np.zeros(18)
         mean_ext[_PHYS_IDX] = self.weights @ self.state_estimates
-        disturbance = self._compute_disturbance(mean_ext, wind, current)  # (3,)
+        disturbance = self.compute_disturbance(mean_ext, prev_wind, prev_current)  # (3,)
 
         # Propagate each particle from its own physical state with its own theta
         x_next_batch = self.dynamics.fd_batch(
@@ -154,10 +165,17 @@ class ParticleFilterFaultDiagnosis(RevoltFaultDiagnosis):
 
         # 2. Weight: Gaussian likelihood p(z | x_i)
         z_pred = x_next_batch[:, [0, 1, 5, 6, 7, 11, 12, 13]]  # (N, 8): [N,E,psi,u,v,r,a1,a2]
-        residuals = z - z_pred
-        log_w = -0.5 * np.einsum('ni,ij,nj->n', residuals, self.R_inv, residuals)
-        log_w -= log_w.max()
-        self.weights = np.exp(log_w)
+        self.z_residuals = z - z_pred
+        log_w = -0.5 * np.einsum('ni,ij,nj->n', self.z_residuals, self.R_inv / 11.0, self.z_residuals)
+        # Sparsity prior: penalise co-occurrence of multiple faults.
+        # f_i = max(0, 1 - theta_i) is the fault degree of component i.
+        # penalty = sparsity_weight * sum_{i<j} f_i * f_j, computed efficiently via:
+        #   sum_{i<j} f_i*f_j  =  0.5 * ((sum f_i)^2 - sum f_i^2)
+        f = np.maximum(0.0, 1.0 - self.particles)  # (N, 4)
+        sum_f = f.sum(axis=1)                       # (N,)
+        log_w -= self.sparsity_weight * 0.5 * (sum_f ** 2 - (f ** 2).sum(axis=1))
+        log_w -= log_w.max() # Ensure at least 1 particle has non-zero weight
+        self.weights = np.exp(log_w) * self.weights # Sequential Importance Sampling (SIS) update: weights *= likelihood
         self.weights /= self.weights.sum()
 
         # 3. Estimate: weighted mean and variance
@@ -171,6 +189,7 @@ class ParticleFilterFaultDiagnosis(RevoltFaultDiagnosis):
 
         # 5. Resample when ESS drops below N/2; resample state estimates too
         n_eff = 1.0 / np.sum(self.weights ** 2)
+        print("n_eff: ", n_eff)
         if n_eff < N / 2:
             idx = self._systematic_resample(self.weights)
             self.particles = self.particles[idx]
@@ -180,9 +199,14 @@ class ParticleFilterFaultDiagnosis(RevoltFaultDiagnosis):
         ext_theta_mean = np.concatenate([theta_mean[0:2], [1.0], theta_mean[2:4], [1.0]])
         ext_theta_var  = np.concatenate([theta_var[0:2],  [0.0], theta_var[2:4],  [0.0]])
 
+        prev_residuals = 0 if self.prev['diagnosis'] is None else self.prev['diagnosis']['residuals']
+        prev_pred_error = 0 if self.prev['diagnosis'] is None else self.prev['diagnosis']['prediction_error']
+
         return {
             'diagnosis_states':    x_mean,
             'diagnosis_theta':     ext_theta_mean,
             'diagnosis_theta_cov': ext_theta_var,
+            'residuals': self.residuals(x_mean, control_commands, measurements, prev_wind, prev_current, ext_theta_mean) + prev_residuals,
+            'prediction_error': self.prediction_error(states, measurements)  + prev_pred_error
         }, {}
 
