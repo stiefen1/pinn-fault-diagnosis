@@ -4,10 +4,11 @@ from python_vehicle_simulator.lib.weather import Wind, Current
 from src.diagnosis.base import RevoltFaultDiagnosis
 
 from typing import Tuple, Dict, Optional
+from copy import deepcopy
 
 import numpy as np
 
-Q_REVOLT_DIAGNOSIS = np.diag([0.3**2, 0.3**2, (0.4*np.pi/180)**2, 0.02**2, 0.02**2, 15*np.pi/180/3600, *np.array(2*[np.pi/100]), *np.array(2*[1.0]), *np.array(2*[1e-5]), *np.array(2*[1e-5])]) / 100
+Q_REVOLT_DIAGNOSIS = np.diag([0.3**2, 0.3**2, (0.4*np.pi/180)**2, 0.02**2, 0.02**2, 15*np.pi/180/3600, *np.array(2*[np.pi/100]), *np.array(2*[1.0]), *np.array(2*[2e-3]), *np.array(2*[2e-3])]) / 100
 R_REVOLT_DIAGNOSIS = np.diag([1e-2, 1e-2, 0.2*np.pi/180, 5e-2, 5e-2, 5e-2, *np.array(2*[np.pi/100])])
 
 class Revolt3AugmentedEKF(IExtendedKalmanFilter):
@@ -131,7 +132,7 @@ class EKFFaultDiagnosis(RevoltFaultDiagnosis):
             self,
             dt: float,
             *args,
-            P0: np.ndarray = 1e5*Q_REVOLT_DIAGNOSIS,
+            P0: np.ndarray = 10*Q_REVOLT_DIAGNOSIS,
             Q: np.ndarray = Q_REVOLT_DIAGNOSIS,
             R: np.ndarray = R_REVOLT_DIAGNOSIS,
             states: Optional[np.ndarray] = None,
@@ -145,8 +146,11 @@ class EKFFaultDiagnosis(RevoltFaultDiagnosis):
         super().__init__(states, dt, *args, dp_mode=dp_mode, **kwargs)
         self.ekf = Revolt3AugmentedEKF(Q, R, states, P0, dt, dp_mode=dp_mode, frozen_states=frozen_states)
 
-    def __get__(self, states:np.ndarray, control_commands:np.ndarray, measurements:np.ndarray, wind: Wind, current: Current, *args, **kwargs) -> Tuple[Dict, Dict]:
-        x = self.ekf(self.ekf.self_u_from_ext_u(control_commands), self.ekf.self_meas_from_ext_meas(measurements), wind, current)
+    def __get__(self, states:np.ndarray, control_commands:np.ndarray, measurements:np.ndarray, wind: Wind, current: Current, prev_navigation: Dict, *args, **kwargs) -> Tuple[Dict, Dict]:
+        prev_wind = prev_navigation["wind"] if "wind" in prev_navigation.keys() else deepcopy(wind)
+        prev_current = prev_navigation["current"] if "current" in prev_navigation.keys() else deepcopy(current)
+
+        x = self.ekf(self.ekf.self_u_from_ext_u(control_commands), self.ekf.self_meas_from_ext_meas(measurements), prev_wind, prev_current)
         return {
             'diagnosis_states': self.ekf.ext_x_from_self_x(x),
             'diagnosis_theta': self.ekf.ext_theta_from_self_x(x),
