@@ -5,12 +5,12 @@ import numpy as np
 
 from typing import Tuple, Dict, Optional, Any
 
-DIAGNOSIS_MODULE_REGISTRY: dict[str, type[RevoltFaultDiagnosis]] = {}
+DIAGNOSIS_MODULE_REGISTRY: dict[str, type["RevoltFaultDiagnosis"]] = {}
 
-def register_diagnosis_module(name: str, model_cls: type[RevoltFaultDiagnosis]) -> None: # You should also add the python file containing your module to src/diagnosis/__init__.py
+def register_diagnosis_module(name: str, model_cls: type["RevoltFaultDiagnosis"]) -> None: # You should also add the python file containing your module to src/diagnosis/__init__.py
 	DIAGNOSIS_MODULE_REGISTRY[name] = model_cls
 
-def create_diagnosis_module(cfg: dict[str, Any], dt: float) -> RevoltFaultDiagnosis:
+def create_diagnosis_module(cfg: dict[str, Any], dt: float) -> "RevoltFaultDiagnosis":
 	model_name = str(cfg["name"])
 	if model_name not in DIAGNOSIS_MODULE_REGISTRY:
 		available = ", ".join(sorted(DIAGNOSIS_MODULE_REGISTRY.keys()))
