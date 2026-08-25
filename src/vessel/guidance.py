@@ -32,7 +32,10 @@ class TrajectoryTrackingGuidance(IGuidance):
         trajectory_matrix[:, 1] = target_wpts[:, 1]
         trajectory_matrix[:, 6] = self.desired_speed
 
-        info = {'term': self.path.progression(states[0], states[1]) >= 1.0}
+        info = {
+            'term': self.path.progression(states[0], states[1]) >= 1.0,
+            "ne_des": target_wpts[0, 0:2]
+            }
         return trajectory_matrix, info
 
     def reset(self):

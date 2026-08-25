@@ -1,5 +1,5 @@
 from python_vehicle_simulator.lib.weather import Wind, Current
-from src.diagnosis.base import RevoltFaultDiagnosis
+from src.diagnosis.base import RevoltFaultDiagnosis, register_diagnosis_module
 from src.diagnosis.ekf import Revolt3AugmentedEKF, Q_REVOLT_DIAGNOSIS, R_REVOLT_DIAGNOSIS
 
 from typing import Tuple, Dict, Optional
@@ -129,8 +129,8 @@ class EKPFaultDiagnosis(RevoltFaultDiagnosis):
         control_commands: u_k-1
         measurements:     y_k
         """
-        prev_wind = prev_navigation.get("wind", deepcopy(wind))
-        prev_current = prev_navigation.get("current", deepcopy(current))
+        prev_wind = prev_navigation.get("wind_meas", deepcopy(wind))
+        prev_current = prev_navigation.get("current_meas", deepcopy(current))
 
         z = self.self_meas_from_ext_meas(measurements)   # (8,)
         u_self = self.self_u_from_ext_u(control_commands)  # (4,)
@@ -218,6 +218,9 @@ class EKPFaultDiagnosis(RevoltFaultDiagnosis):
             'diagnosis_states':    x_mean,
             'diagnosis_theta':     ext_theta_mean,
             'diagnosis_theta_cov': ext_theta_var,
-            'residuals': self.residuals(x_mean, control_commands, measurements, prev_wind, prev_current, ext_theta_mean) + prev_residuals,
+            # 'residuals': self.residuals(x_mean, control_commands, measurements, prev_wind, prev_current, ext_theta_mean) + prev_residuals,
             'prediction_error': self.prediction_error(states, measurements) + prev_pred_error,
         }, {}
+
+
+register_diagnosis_module("EKPFaultDiagnosis", EKPFaultDiagnosis)

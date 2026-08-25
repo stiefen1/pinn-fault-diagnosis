@@ -17,6 +17,14 @@ This repository is still in early development. If you catch any bug / issue, ple
 - Win Nobel Prize for your paper
 - Relax
 
+Stephen:
+- Express wind, current in ship frame in dataset (`src/dataset/core.py`)
+- TRAINING DATASET SHOULD PROBABLY CONTAIN MORE FAULTS
+- OR DATASET SHOULD BE BIGGER
+
+# Notes
+- I have changed how target theta is being set; before we were predicting theta[k] based on (u[k-t+1], u[k-t+2], ..., u[k]) and (y[k-t+1], y[k-t+2], ..., y[k]). My guess is that it makes the training more difficult, because a fault just occured, we ask the NN for a very large decision even though it doesn't have much information for that. With similar level of information we could ask the NN to provide an oppositve diagnosis, which I believe makes the training inefficient. Instead, we now use an Exponential Moving Average over (theta[k-t+1], theta[k-t+2], ..., theta[k]), where we care more about theta[k-t+1].
+
 
 # Installation
 ```
@@ -115,7 +123,7 @@ The complete list of available signals is available in [`src/excitation/signals.
 To enable control commands from the NMPC controller, simply set vessel.control.enabled to **true**. If an auxiliary signals was requested as well, the resulting control commands will be the sum of both. This could be useful e.g. to mix NMPC control commands with gaussian noise to obtain a more diverse dataset of excitation signals. 
 
 ## Designing a new NN architecture
-All the NN architecture to be tested must inherit from the base class `BaseFaultEstimatorNN`, located in [`src/architecture/base.py`](src/architecture/base.py), to ensure compliance with other parts of the code. We provide a simple Multi-Layer Perceptron (MLP) architecture in [`src/architecture/mlp.py`](src/architecture/mlp.py) as an example to use this base class. The idea is that any new architecture must be a new class that inherit from `BaseFaultEstimatorNN`. To actually implement this new architecture, you must implement two methods:
+All the NN architecture to be tested must inherit from the base class `LearningBasedFaultEstimator`, located in [`src/architecture/base.py`](src/architecture/base.py), to ensure compliance with other parts of the code. We provide a simple Multi-Layer Perceptron (MLP) architecture in [`src/architecture/mlp.py`](src/architecture/mlp.py) as an example to use this base class. The idea is that any new architecture must be a new class that inherit from `LearningBasedFaultEstimator`. To actually implement this new architecture, you must implement two methods:
 
 - **init_architecture(self) -> None**: Setup the type and number of layers of the NN and store it as a [nn.Sequential](https://docs.pytorch.org/docs/2.12/generated/torch.nn.Sequential.html) object.
 - **forward(self, x: Tensor) -> Tensor**: Compute the forward pass through the NN

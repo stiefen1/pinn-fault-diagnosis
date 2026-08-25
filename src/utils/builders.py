@@ -19,6 +19,7 @@ ACTIVATION_CLASSES: dict[str, type[nn.Module] | None] = {
 
 def build_activation_fn(cfg: dict[str, Any]) -> nn.Module | None:
     """Return a torch activation class for a simple string name."""
+    cfg = cfg.copy() # avoid overwriting
     name = str(cfg.pop("name")).lower()
     if name not in ACTIVATION_CLASSES:
         available = ", ".join(sorted(ACTIVATION_CLASSES.keys()))

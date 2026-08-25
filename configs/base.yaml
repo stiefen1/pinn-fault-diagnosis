@@ -12,8 +12,9 @@ project:
 
 dataset:
   features:
-    nx: 18
     nu: 6
+    ny: 9
+    nx: 18
     ntheta: 6
     n_samples: 1
 

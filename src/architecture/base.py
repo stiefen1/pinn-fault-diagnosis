@@ -6,19 +6,19 @@ from torch import Tensor, load
 
 from src.utils.builders import ACTIVATION_CLASSES
 
-class BaseFaultEstimatorNN(nn.Module, ABC):
+class LearningBasedFaultEstimator(nn.Module, ABC):
 	architecture: nn.Sequential
 
 	def __init__(
 		self,
-		nx: int,
+		ny: int,
 		nu: int,
 		n_samples: int = 1,
 		ntheta: int = 3,
 		architecture_cfg: dict[str, Any] | None = None,
 	):
 		super().__init__()
-		self.nx = nx
+		self.ny = ny
 		self.nu = nu
 		self.n_samples = n_samples
 		self.ntheta = ntheta
@@ -28,7 +28,7 @@ class BaseFaultEstimatorNN(nn.Module, ABC):
 
 	@property
 	def input_dim(self) -> int:
-		return self.n_samples * (2 * self.nx + self.nu)
+		return self.n_samples * (2 * self.ny + self.nu + 2 + 2) # 2 + 2 = wind + current
 
 	@property
 	def output_dim(self) -> int:
@@ -53,14 +53,14 @@ class BaseFaultEstimatorNN(nn.Module, ABC):
 			
 			
 
-MODEL_REGISTRY: dict[str, type[BaseFaultEstimatorNN]] = {}
+MODEL_REGISTRY: dict[str, type[LearningBasedFaultEstimator]] = {}
 
 
-def register_model(name: str, model_cls: type[BaseFaultEstimatorNN]) -> None:
+def register_model(name: str, model_cls: type[LearningBasedFaultEstimator]) -> None:
 	MODEL_REGISTRY[name] = model_cls
 
 
-def create_model(cfg: dict[str, Any]) -> BaseFaultEstimatorNN:
+def create_model(cfg: dict[str, Any]) -> LearningBasedFaultEstimator:
 	model_cfg = cfg["model"]
 	features_cfg = cfg["dataset"]["features"]
 
@@ -71,7 +71,7 @@ def create_model(cfg: dict[str, Any]) -> BaseFaultEstimatorNN:
 
 	model_cls = MODEL_REGISTRY[model_name]
 	model = model_cls(
-		nx=int(features_cfg["nx"]),
+		ny=int(features_cfg["ny"]),
 		nu=int(features_cfg["nu"]),
 		n_samples=int(features_cfg["n_samples"]),
 		ntheta=int(features_cfg["ntheta"]),
@@ -115,7 +115,7 @@ if __name__ == "__main__":
 	
 	model_cls = registry[model_name]
 	model = model_cls(
-		nx=int(features_cfg["nx"]),
+		ny=int(features_cfg["ny"]),
 		nu=int(features_cfg["nu"]),
 		n_samples=int(features_cfg["n_samples"]),
 		ntheta=int(features_cfg["ntheta"]),
@@ -123,9 +123,9 @@ if __name__ == "__main__":
 	).to(device)
 	print(f"Model: {model.__class__.__name__}")
 	
-	nx, nu = int(features_cfg["nx"]), int(features_cfg["nu"])
+	ny, nu = int(features_cfg["ny"]), int(features_cfg["nu"])
 	n_samples = int(features_cfg["n_samples"])
-	input_dim = n_samples * (2 * nx + nu)
+	input_dim = n_samples * (2 * ny + nu)
 	
 	x = torch.rand(1, input_dim).to(device)
 	y = model.forward(x)

@@ -1,6 +1,6 @@
 from python_vehicle_simulator.vehicles.revolt3 import ReVolt3Dynamics, RevoltThrusterParameters, RevoltParameters3DOF
 from python_vehicle_simulator.lib.weather import Wind, Current
-from src.diagnosis.base import RevoltFaultDiagnosis
+from src.diagnosis.base import RevoltFaultDiagnosis, register_diagnosis_module
 
 from typing import Tuple, Dict, Optional
 
@@ -67,3 +67,5 @@ class ParitySpaceFaultDiagnosis(RevoltFaultDiagnosis):
         # update self state
         # self.states = ...
         return {}, {}
+
+register_diagnosis_module("ParitySpaceFaultDiagnosis", ParitySpaceFaultDiagnosis)

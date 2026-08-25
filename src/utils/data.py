@@ -27,7 +27,12 @@ def load_npz_dataset(path: str) -> TensorDataset:
     return TensorDataset(x_t, y_t)
 
 
-def load_dataset(path: str):
+def load_dataset(
+    path: str,
+    n_samples: int = 1,
+    target_mode: str = "instant",
+    ema_alpha: float = 0.1,
+):
     """
     Auto-select dataset implementation based on npz keys.
 
@@ -38,19 +43,36 @@ def load_dataset(path: str):
         keys = set(arr.files)
 
     if {"x", "u", "theta"}.issubset(keys):
-        return FaultIdentificationDataset(path)
+        return FaultIdentificationDataset(
+            path,
+            n_samples=n_samples,
+            target_mode=target_mode,
+            ema_alpha=ema_alpha,
+        )
 
     return load_npz_dataset(path)
 
 
-def load_datasets(paths: Union[str, list[str]]) -> Dataset:
+def load_datasets(
+    paths: Union[str, list[str]],
+    n_samples: int = 1,
+    target_mode: str = "instant",
+    ema_alpha: float = 0.1,
+) -> Dataset:
     """Load one or more dataset paths and return a single Dataset."""
     if isinstance(paths, str):
         paths = [paths]
     datasets = []
     N = len(paths)
     for i, p in enumerate(paths):
-        datasets.append(load_dataset(p))
+        datasets.append(
+            load_dataset(
+                p,
+                n_samples=n_samples,
+                target_mode=target_mode,
+                ema_alpha=ema_alpha,
+            )
+        )
         print(f"Successfully loaded dataset {i+1}/{N} - {p}")
     return datasets[0] if len(datasets) == 1 else ConcatDataset(datasets)
 
@@ -68,7 +90,16 @@ def make_loader(cfg: dict[str, Any], split: str) -> DataLoader:
     batch_key = f"{split}_batch_size"
     default_batch = 256 if split == "train" else 1024
 
-    dataset = load_datasets(data_cfg[path_key])
+    features_cfg = data_cfg.get("features", {})
+    n_samples = int(features_cfg.get("n_samples", 1))
+    target_mode = str(features_cfg.get("target_mode", "instant"))
+    ema_alpha = float(features_cfg.get("ema_alpha", 0.1))
+    dataset = load_datasets(
+        data_cfg[path_key],
+        n_samples=n_samples,
+        target_mode=target_mode,
+        ema_alpha=ema_alpha,
+    )
     num_workers = int(batch_cfg.get("num_workers", 0))
     requested_device = str(cfg.get("device", "cuda")).lower()
     pin_memory = (requested_device == "cuda" and torch.cuda.is_available())

@@ -1,5 +1,5 @@
 from python_vehicle_simulator.lib.weather import Wind, Current
-from src.diagnosis.base import RevoltFaultDiagnosis
+from src.diagnosis.base import RevoltFaultDiagnosis, register_diagnosis_module
 
 from typing import Tuple, Dict, Optional
 from copy import deepcopy
@@ -115,14 +115,14 @@ class ParticleFilterFaultDiagnosis(RevoltFaultDiagnosis):
         return np.searchsorted(np.cumsum(weights), positions)
 
     def __get__(self, states: np.ndarray, control_commands: np.ndarray, measurements: np.ndarray,
-                wind: Wind, current: Current, prev_navigation: Dict, *args, **kwargs) -> Tuple[Dict, Dict]:
+                wind: Wind, current: Current, prev_navigation: Dict, states_est: np.ndarray, innovation_cov: np.ndarray, *args, **kwargs) -> Tuple[Dict, Dict]:
         """
         states: x_k
         control_commands: u_k-1
         measurements: y_k
         """
-        prev_wind = prev_navigation["wind"] if "wind" in prev_navigation.keys() else deepcopy(wind)
-        prev_current = prev_navigation["current"] if "current" in prev_navigation.keys() else deepcopy(current)        
+        prev_wind = prev_navigation["wind_meas"] if "wind_meas" in prev_navigation.keys() else deepcopy(wind)
+        prev_current = prev_navigation["current_meas"] if "current_meas" in prev_navigation.keys() else deepcopy(current)        
 
         z = self.self_meas_from_ext_meas(measurements)  # (8,)
         N = self.n_particles
@@ -189,7 +189,7 @@ class ParticleFilterFaultDiagnosis(RevoltFaultDiagnosis):
 
         # 5. Resample when ESS drops below N/2; resample state estimates too
         n_eff = 1.0 / np.sum(self.weights ** 2)
-        print("n_eff: ", n_eff)
+        # print("n_eff: ", n_eff)
         if n_eff < N / 2:
             idx = self._systematic_resample(self.weights)
             self.particles = self.particles[idx]
@@ -206,7 +206,9 @@ class ParticleFilterFaultDiagnosis(RevoltFaultDiagnosis):
             'diagnosis_states':    x_mean,
             'diagnosis_theta':     ext_theta_mean,
             'diagnosis_theta_cov': ext_theta_var,
-            'residuals': self.residuals(x_mean, control_commands, measurements, prev_wind, prev_current, ext_theta_mean) + prev_residuals,
-            'prediction_error': self.prediction_error(states, measurements)  + prev_pred_error
+            # 'residuals': self.residuals(x_mean, control_commands, measurements, prev_wind, prev_current, ext_theta_mean) + prev_residuals,
+            'prediction_error': self.prediction_error(states, measurements)  + prev_pred_error,
+            'fault_indicator': self.fault_indicator(states_est, measurements, innovation_cov)
         }, {}
 
+register_diagnosis_module("ParticleFilterFaultDiagnosis", ParticleFilterFaultDiagnosis)

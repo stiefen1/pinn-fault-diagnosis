@@ -3,7 +3,22 @@ from python_vehicle_simulator.vehicles.revolt3 import RevoltParameters3DOF, Revo
 from python_vehicle_simulator.lib.weather import Wind, Current
 import numpy as np
 
-from typing import Tuple, Dict, Optional
+from typing import Tuple, Dict, Optional, Any
+
+DIAGNOSIS_MODULE_REGISTRY: dict[str, type[RevoltFaultDiagnosis]] = {}
+
+def register_diagnosis_module(name: str, model_cls: type[RevoltFaultDiagnosis]) -> None: # You should also add the python file containing your module to src/diagnosis/__init__.py
+	DIAGNOSIS_MODULE_REGISTRY[name] = model_cls
+
+def create_diagnosis_module(cfg: dict[str, Any], dt: float) -> RevoltFaultDiagnosis:
+	model_name = str(cfg["name"])
+	if model_name not in DIAGNOSIS_MODULE_REGISTRY:
+		available = ", ".join(sorted(DIAGNOSIS_MODULE_REGISTRY.keys()))
+		raise ValueError(f"Unknown model '{model_name}'. Available: {available}")
+
+	model_cls = DIAGNOSIS_MODULE_REGISTRY[model_name]
+	diagnosis_module = model_cls(dt=dt, **cfg["kwargs"])
+	return diagnosis_module
 
 class RevoltFaultDiagnosis(IDiagnosis):
     actuator_params: RevoltThrusterParameters = RevoltThrusterParameters()
@@ -48,15 +63,13 @@ class RevoltFaultDiagnosis(IDiagnosis):
     def measurement_model(self, states:np.ndarray) -> np.ndarray:
         return np.take(states, (0, 1, 5, 6, 7, 11, 12, 13)).squeeze()
 
-    def residuals(self, x_hat_prev:np.ndarray, u_prev:np.ndarray, y:np.ndarray, wind_prev: Wind, current_prev: Current, theta_prev: np.ndarray, *args, **kwargs) -> np.ndarray:
-        """
-        hat = estimated value
-        prev = previous timestep
-        """
-
-        x_hat = self.predict(x_hat_prev, u_prev, wind_prev, current_prev, theta_prev)
+    def residuals(self, x_hat:np.ndarray, y:np.ndarray) -> np.ndarray:
         y_hat = self.measurement_model(x_hat)
         return y_hat - y[0:8].squeeze()
+
+    def fault_indicator(self, x_hat:np.ndarray, y:np.ndarray, S:np.ndarray) -> float:
+        r = self.residuals(x_hat, y)
+        return float((r.T @ np.linalg.pinv(S[0:8, 0:8]) @ r).astype(float))
 
     def prediction_error(self, states: np.ndarray, y: np.ndarray) -> np.ndarray:
         return self.measurement_model(states) - y[0:8].squeeze()
@@ -75,6 +88,4 @@ class RevoltFaultDiagnosis(IDiagnosis):
             N = theta.shape[0]
             return self.dynamics.fd_batch(np.repeat([states], N, axis=0), np.repeat([u], N, axis=0), theta=theta, disturbance=np.repeat([disturbance], N, axis=0))
         return self.dynamics.fd(states, u, theta=theta, disturbance=disturbance)
-    
-    
     

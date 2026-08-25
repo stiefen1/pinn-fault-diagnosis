@@ -1,16 +1,23 @@
-import torch, torch.nn as nn
+import torch, torch.nn as nn, numpy as np
 from torch import Tensor
-from src.architecture.base import BaseFaultEstimatorNN, register_model
+from src.architecture.base import LearningBasedFaultEstimator, register_model
 from src.utils.builders import build_activation_fn
-class MLPFaultEstimator(BaseFaultEstimatorNN):
-	def init_architecture(self) -> None:
-		hidden_layers = list(self.architecture_cfg["hidden_layers"])
-		if not hidden_layers:
-			hidden_layers = [20, 10]
 
-		activation_fn = build_activation_fn(self.architecture_cfg["activation"])
+from python_vehicle_simulator.lib.weather import Wind, Current
+
+DEFAULT_ACTIVATION_CFG = {
+	"name": "relu"
+}
+
+class MLPFaultEstimator(LearningBasedFaultEstimator):
+	def init_architecture(self) -> None:
+		hidden_layers = self.architecture_cfg.get("hidden_layers", [20, 10])
+
+		activation_fn = build_activation_fn(
+			self.architecture_cfg.get("activation", DEFAULT_ACTIVATION_CFG)
+		)
 		output_activation_fn = build_activation_fn(
-			self.architecture_cfg["output_activation"]
+			self.architecture_cfg.get("output_activation", DEFAULT_ACTIVATION_CFG)
 		)
 
 		self.flatten = nn.Flatten()
@@ -38,7 +45,7 @@ register_model("MLPFaultEstimator", MLPFaultEstimator)
 if __name__ == "__main__":
 	device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"  # type: ignore
 	print(f"Using {device} device")
-	model = MLPFaultEstimator(12, 8).to(device)
-	x0 = torch.rand(1, 2 * 12 + 8)
+	model = MLPFaultEstimator(9, 6, n_samples=3).to(device)
+	x0 = torch.rand(1, 3, 2 * 9 + 6 + 2 + 2) # 2 + 2 = wind, current
 	y = model.forward(x0)
 	print(f"Output: {y} with shape {y.shape}")

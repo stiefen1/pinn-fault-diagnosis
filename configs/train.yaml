@@ -31,7 +31,15 @@ io:
 dataset:
   train_path: 
     - data/train/fault_identification_dataset.npz
+    - data/train/fault_identification_dataset_50_nmpc.npz
+    - data/train/fault_identification_dataset_50_random.npz
+    - data/train/fault_identification_dataset_500_random.npz
   val_path: data/validation/fault_identification_dataset.npz
+  features:
+    n_samples: 50
+    target_mode: ema # instant | ema -> instant means we take theta at last time step as target. Exponential moving average (EMA) enables to use a weighted average of theta along the window instead
+    ema_alpha: 0.1 # Used when target_mode is ema; larger values respond faster.
+
 
   loading:
     shuffle_train: true
@@ -51,22 +59,22 @@ model:
   name: MLPFaultEstimator
 
   architecture:
-    hidden_layers: [128, 128, 64]
+    hidden_layers: [256, 128, 64]
     activation:
       name: relu # relu | tanh | gelu | silu | leaky_relu
     output_activation:
-      name: sigmoid
-    dropout: 0.0
-    layer_norm: false
-    batch_norm: false
+      name: sigmoid # To have theta \in [0, 1]
+    dropout: 0.1
+    layer_norm: true
+    batch_norm: true
 
 train:
-  max_epochs: 300
+  max_epochs: 1000
   grad_clip_norm: 1.0
 
   early_stopping:             # stop training if validation stopped improving
-    enabled: false
-    patience: 25              # number of epochs without improvement before stopping
+    enabled: true
+    patience: 50              # number of epochs without improvement before stopping
     min_delta: 1.0e-6         # improvement must be at least greater than this value
 
 loss:
@@ -80,7 +88,7 @@ loss:
 
 optimizer:
   name: adamw                 # adam | adamw | sgd
-  lr: 1.0e-3
+  lr: 1.0e-4 # 1.0e-3
   weight_decay: 1.0e-4
 
   scheduler:                  # step | cosine_annealing | exp

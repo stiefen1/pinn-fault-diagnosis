@@ -1,5 +1,5 @@
 from python_vehicle_simulator.lib.weather import Wind, Current
-from src.diagnosis.base import RevoltFaultDiagnosis
+from src.diagnosis.base import RevoltFaultDiagnosis, register_diagnosis_module
 
 from typing import Tuple, Dict, Optional
 from copy import deepcopy
@@ -41,9 +41,9 @@ class PEMFaultDiagnosis(RevoltFaultDiagnosis):
         self.x_hat     = np.zeros(self.NX)
         self.theta_hat = np.ones(self.NTHETA)
 
-    def __get__(self, states: np.ndarray, control_commands: np.ndarray, measurements: np.ndarray, wind: Wind, current: Current, prev_navigation: Dict, *args, **kwargs) -> Tuple[Dict, Dict]:
-        prev_wind = prev_navigation["wind"] if "wind" in prev_navigation.keys() else deepcopy(wind)
-        prev_current = prev_navigation["current"] if "current" in prev_navigation.keys() else deepcopy(current) 
+    def __get__(self, states: np.ndarray, control_commands: np.ndarray, measurements: np.ndarray, wind: Wind, current: Current, prev_navigation: Dict, states_est: np.ndarray, innovation_cov: np.ndarray, *args, **kwargs) -> Tuple[Dict, Dict]:
+        prev_wind = prev_navigation["wind_meas"] if "wind_meas" in prev_navigation.keys() else deepcopy(wind)
+        prev_current = prev_navigation["current_meas"] if "current_meas" in prev_navigation.keys() else deepcopy(current) 
 
         y = np.asarray(measurements[:self.NZ])
         u = np.asarray(control_commands[:self.NU])
@@ -69,10 +69,14 @@ class PEMFaultDiagnosis(RevoltFaultDiagnosis):
         self.x_hat              = x_pred.copy()
         self.x_hat[self.MEAS_IDX] = y
 
+        # print(grad)
         self.theta_hat = np.clip(self.theta_hat + self.lr * grad, 0.0, 1.0)
 
         return {
             'diagnosis_states':    self.x_hat,
             'diagnosis_theta':     self.theta_hat,
             'diagnosis_theta_cov': np.zeros(self.NTHETA),
+            'fault_indicator': self.fault_indicator(states_est, measurements, innovation_cov)
         }, {}
+
+register_diagnosis_module("PEMFaultDiagnosis", PEMFaultDiagnosis)

@@ -1,5 +1,5 @@
 from python_vehicle_simulator.lib.weather import Wind, Current
-from src.diagnosis.base import RevoltFaultDiagnosis
+from src.diagnosis.base import RevoltFaultDiagnosis, register_diagnosis_module
 
 from typing import Tuple, Dict, Optional
 
@@ -96,3 +96,5 @@ class SMOFaultDiagnosis(RevoltFaultDiagnosis):
             'diagnosis_theta':     self.theta_hat,
             'diagnosis_theta_cov': np.zeros(self.NTHETA),
         }, {}
+
+register_diagnosis_module("SMOFaultDiagnosis", SMOFaultDiagnosis)

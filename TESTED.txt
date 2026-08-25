@@ -2,4 +2,4 @@
 - relu / leaky_relu -> Kaiming
 - tahn / sigmoid -> Xavier
 
-It drastically increased final cost, even with different learning rates. This feature was completely removed for now, but can be re-implement in BaseFaultEstimatorNN.init_weights
+It drastically increased final cost, even with different learning rates. This feature was completely removed for now, but can be re-implement in LearningBasedFaultEstimator.init_weights

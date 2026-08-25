@@ -14,6 +14,10 @@ from src.diagnosis.ekf import EKFFaultDiagnosis
 from src.diagnosis.particle_filter import ParticleFilterFaultDiagnosis
 from src.diagnosis.parity_space import ParitySpaceFaultDiagnosis
 from src.diagnosis.ekpf import EKPFaultDiagnosis
+from src.diagnosis.ukf import UKFFaultDiagnosis
+from src.diagnosis.mhe import MHEFaultDiagnosis
+from src.diagnosis.smo import SMOFaultDiagnosis
+from src.diagnosis.pem import PEMFaultDiagnosis
 
 import numpy as np, matplotlib.pyplot as plt
 
@@ -36,22 +40,39 @@ vessel = ReVolt3(
             dt,
             horizon            
         ),
-        navigation=NavigationRevolt(np.array(18*[0]), dt, dp_mode=dp_mode, perfect_meas=False),
+        navigation=NavigationRevolt(np.array(18*[0]), dt, dp_mode=dp_mode, perfect_meas=True),
         # diagnosis=EKPFaultDiagnosis(
         #     dt,
         #     n_particles=200,
         #     theta_process_std=(0.01, 0.01, 0.01, 0.01)
         # )
-        diagnosis=ParticleFilterFaultDiagnosis(
-            dt,
-            n_particles=500,
-            theta_process_std=(0.01, 0.01, 0.01, 0.01)
-        )
+        # diagnosis=ParticleFilterFaultDiagnosis(
+        #     dt,
+        #     n_particles=500,
+        #     theta_process_std=(0.01, 0.01, 0.01, 0.01)
+        # )
         # diagnosis=EKFFaultDiagnosis(
         #     dt, 
         #     dp_mode=dp_mode,
-        #     frozen_states=np.array([10, 11])
+        #     # frozen_states=np.array([10, 11])
         # )
+        # diagnosis=UKFFaultDiagnosis(
+        #     dt,
+        #     dp_mode=dp_mode,
+        #     # frozen_states=np.array([10, 11])
+        # )
+        # diagnosis=MHEFaultDiagnosis(
+        #     dt,
+        #     horizon=100
+        # )
+        # diagnosis=SMOFaultDiagnosis(
+        #     dt
+        # )
+        diagnosis=PEMFaultDiagnosis( # Works well with perfect measurements, but fails when noise is added
+            dt,
+            lr=10,
+            sparse_grad=False
+        )
     )
 
 env = NavEnv(
@@ -59,8 +80,8 @@ env = NavEnv(
     target_vessels=[],
     obstacles=[],
     dt=dt,
-    current=Current(beta=-30.0*DEG2RAD, v=0.1),
-    wind=Wind(beta=60.0*DEG2RAD, v=10.0)
+    current=Current(beta=-30.0*DEG2RAD, v=0.0), #v=0.1),
+    wind=Wind(beta=60.0*DEG2RAD, v=0.0) # v=10.0)
 )
 
 sim = Simulator(
@@ -72,7 +93,7 @@ sim = Simulator(
         window_size=(6, 6)
     )
 
-sim.run(tf=100, render=True, store_data=True, theta=np.array([1, 1, 1, 0.5, 1, 1]))
+sim.run(tf=50, render=False, store_data=True, theta=np.array([1, 1, 1, 0.5, 1, 1]))
 
 # After calling plot_gnc_data_multi, add:
 nav_data = sim.simulation_data['gnc_data']['navigation']
@@ -90,9 +111,9 @@ fig5 = sim.plot_gnc_data_multi([
 ])
 
 fig6 = sim.plot_gnc_data_multi([
-    'navigation.actual_states[15]',
-    'navigation.actual_states[16]',
-    'navigation.actual_states[17]'
+    'navigation.states[15]',
+    'navigation.states[16]',
+    'navigation.states[17]'
 ])
 
 fig7 = sim.plot_gnc_data_multi([
@@ -110,6 +131,7 @@ fig8 = sim.plot_gnc_data_multi([
     'diagnosis.diagnosis.diagnosis_theta_cov[3]',
     'diagnosis.diagnosis.diagnosis_theta_cov[4]',
 ])
+fig9 = sim.plot_gnc_data('diagnosis.diagnosis.fault_indicator')
 # fig8 = sim.plot_gnc_data_multi([
 #     'diagnosis.diagnosis.residuals[0]',
 #     'diagnosis.diagnosis.residuals[1]',

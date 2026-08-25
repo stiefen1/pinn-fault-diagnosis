@@ -1,5 +1,5 @@
 from python_vehicle_simulator.lib.weather import Wind, Current
-from src.diagnosis.base import RevoltFaultDiagnosis
+from src.diagnosis.base import RevoltFaultDiagnosis, register_diagnosis_module
 
 from collections import deque
 from typing import Tuple, Dict, Optional
@@ -100,8 +100,8 @@ class MHEFaultDiagnosis(RevoltFaultDiagnosis):
         self._n_xdec = n_xdec
 
     def __get__(self, states: np.ndarray, control_commands: np.ndarray, measurements: np.ndarray, wind: Wind, current: Current, prev_navigation: Dict, *args, **kwargs) -> Tuple[Dict, Dict]:
-        prev_wind = prev_navigation["wind"] if "wind" in prev_navigation.keys() else deepcopy(wind)
-        prev_current = prev_navigation["current"] if "current" in prev_navigation.keys() else deepcopy(current)
+        prev_wind = prev_navigation["wind_meas"] if "wind_meas" in prev_navigation.keys() else deepcopy(wind)
+        prev_current = prev_navigation["current_meas"] if "current_meas" in prev_navigation.keys() else deepcopy(current)
 
         self._buf.append((np.asarray(measurements[:self.NZ]), np.asarray(control_commands[:self.NU])))
 
@@ -141,3 +141,5 @@ class MHEFaultDiagnosis(RevoltFaultDiagnosis):
             'diagnosis_theta': theta_opt,
             'diagnosis_theta_cov': np.zeros(self.NTHETA)   # MHE has no natural covariance output
         }, {}
+
+register_diagnosis_module("MHEFaultDiagnosis", MHEFaultDiagnosis)

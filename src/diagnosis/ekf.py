@@ -1,7 +1,7 @@
 from python_vehicle_simulator.vehicles.revolt3 import ReVolt3Dynamics, RevoltThrusterParameters, RevoltParameters3DOF
 from python_vehicle_simulator.lib.kalman import IExtendedKalmanFilter
 from python_vehicle_simulator.lib.weather import Wind, Current
-from src.diagnosis.base import RevoltFaultDiagnosis
+from src.diagnosis.base import RevoltFaultDiagnosis, register_diagnosis_module
 
 from typing import Tuple, Dict, Optional
 from copy import deepcopy
@@ -147,8 +147,8 @@ class EKFFaultDiagnosis(RevoltFaultDiagnosis):
         self.ekf = Revolt3AugmentedEKF(Q, R, states, P0, dt, dp_mode=dp_mode, frozen_states=frozen_states)
 
     def __get__(self, states:np.ndarray, control_commands:np.ndarray, measurements:np.ndarray, wind: Wind, current: Current, prev_navigation: Dict, *args, **kwargs) -> Tuple[Dict, Dict]:
-        prev_wind = prev_navigation["wind"] if "wind" in prev_navigation.keys() else deepcopy(wind)
-        prev_current = prev_navigation["current"] if "current" in prev_navigation.keys() else deepcopy(current)
+        prev_wind = prev_navigation["wind_meas"] if "wind_meas" in prev_navigation.keys() else deepcopy(wind)
+        prev_current = prev_navigation["current_meas"] if "current_meas" in prev_navigation.keys() else deepcopy(current)
 
         x = self.ekf(self.ekf.self_u_from_ext_u(control_commands), self.ekf.self_meas_from_ext_meas(measurements), prev_wind, prev_current)
         return {
@@ -156,3 +156,5 @@ class EKFFaultDiagnosis(RevoltFaultDiagnosis):
             'diagnosis_theta': self.ekf.ext_theta_from_self_x(x),
             'diagnosis_theta_cov': self.ekf.ext_theta_from_self_x(np.diag(self.ekf.P))
         }, {}
+
+register_diagnosis_module("EKFFaultDiagnosis", EKFFaultDiagnosis)

@@ -1,5 +1,5 @@
 from python_vehicle_simulator.lib.weather import Wind, Current
-from src.diagnosis.base import RevoltFaultDiagnosis
+from src.diagnosis.base import RevoltFaultDiagnosis, register_diagnosis_module
 
 from typing import Tuple, Dict, Optional
 from copy import deepcopy
@@ -126,8 +126,8 @@ class UKFFaultDiagnosis(RevoltFaultDiagnosis):
         return self.x
 
     def __get__(self, states: np.ndarray, control_commands: np.ndarray, measurements: np.ndarray, wind: Wind, current: Current, prev_navigation: Dict, *args, **kwargs) -> Tuple[Dict, Dict]:
-        prev_wind = prev_navigation["wind"] if "wind" in prev_navigation.keys() else deepcopy(wind)
-        prev_current = prev_navigation["current"] if "current" in prev_navigation.keys() else deepcopy(current)
+        prev_wind = prev_navigation["wind_meas"] if "wind_meas" in prev_navigation.keys() else deepcopy(wind)
+        prev_current = prev_navigation["current_meas"] if "current_meas" in prev_navigation.keys() else deepcopy(current)
         self._predict(self.self_u_from_ext_u(control_commands), prev_wind, prev_current)
         x = self._update(self.self_meas_from_ext_meas(measurements))
         return {
@@ -135,3 +135,5 @@ class UKFFaultDiagnosis(RevoltFaultDiagnosis):
             'diagnosis_theta': self.ext_theta_from_self_x(x),
             'diagnosis_theta_cov': self.ext_theta_from_self_x(np.diag(self.P))
         }, {}
+
+register_diagnosis_module("UKFFaultDiagnosis", UKFFaultDiagnosis)

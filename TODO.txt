@@ -1,7 +1,7 @@
 PINN-Fault-Diagnosis
     - Build your own NN architecture:
         - Create a .py file inside the architecture folder
-        - Create a new class representing your NN that inherits from ```BaseFaultEstimatorNN``` (see ```src/architecture/base.py```)
+        - Create a new class representing your NN that inherits from ```LearningBasedFaultEstimator``` (see ```src/architecture/base.py```)
         - Implement the ```init_architecture``` and ```forward``` methods to match the desired architecture
 
 PythonVehicleSimulator

@@ -93,23 +93,28 @@ class NavigationRevolt(INavigation):
         AIS is considered as a Sensor, and hence is and instance of ISensor.
         """
         # print(timestamp)
-        wind_meas = self.measure_wind(wind or Wind(0, 0))
-        current_meas = self.measure_current(current or Current(0, 0))
+        wind = wind if wind is not None else Wind(0, 0)
+        current = current if current is not None else Current(0, 0)
+        wind_meas = self.measure_wind(wind)
+        current_meas = self.measure_current(current)
 
         states_meas = self.measure_states(states)
-        states_estimation = self.state_estimator(control_commands, states_meas, wind_meas, current_meas, theta=theta)
+        states_est = self.state_estimator(control_commands, states_meas, wind_meas, current_meas, theta=theta)
         
         observation = {
-            "eta": states_estimation[0:6],
-            "nu": states_estimation[6:12],
-            "states": states_estimation,
-            "current": current_meas,
-            "wind": wind_meas,
+            "eta": states_est[0:6],
+            "nu": states_est[6:12],
+            "states": states,
+            "states_est": states_est,
+            "current_meas": current_meas,
+            "wind_meas": wind_meas,
+            "current": current,
+            "wind": wind,
             "obstacles": obstacles,
             "measurements": states_meas,
             "target_vessels": target_vessels, # Required for IGuidance
-            "actual_states": states,
-            "theta": theta if theta is not None else np.ones((6,))
+            "theta": theta if theta is not None else np.ones((6,)),
+            "innovation_cov": self.state_estimator.S.copy()
         }
         info = {}
 
