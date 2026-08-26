@@ -1,20 +1,18 @@
-from python_vehicle_simulator.vehicles.revolt3 import ReVolt3Dynamics, RevoltThrusterParameters, RevoltParameters3DOF
 from python_vehicle_simulator.lib.weather import Wind, Current
 from src.diagnosis.base import register_diagnosis_module
 from src.diagnosis.learning_based import LearningBasedFaultDiagnosis
 
-from src.architecture.mlp import MLPFaultEstimator
+from src.architecture.cnn import CNNFaultEstimator
 
 from typing import Tuple, Dict, Optional
 
 import numpy as np
-from torch import Tensor
-import torch as th
+import torch
 
 from copy import deepcopy
 
-class MLPFaultDiagnosis(LearningBasedFaultDiagnosis):
-    model: MLPFaultEstimator # type: ignore
+class CNNFaultDiagnosis(LearningBasedFaultDiagnosis):
+    model: CNNFaultEstimator # type: ignore
 
     def __init__(
             self,
@@ -38,13 +36,19 @@ class MLPFaultDiagnosis(LearningBasedFaultDiagnosis):
         diagnosis_theta = np.array(6*[1.0]) # Assume perfect theta if not enough measurements are available 
 
         if self.y_prev is not None:
-            self.input_buffer.append(np.concatenate([self.y_prev.squeeze(), control_commands.squeeze(), measurements.squeeze(), [prev_wind.beta, prev_wind.norm, prev_current.beta, prev_current.norm]]))
+            step_features = np.concatenate([
+                self.y_prev.squeeze(),
+                control_commands.squeeze(),
+                measurements.squeeze(),
+                [prev_wind.beta, prev_wind.norm, prev_current.beta, prev_current.norm],
+            ]).astype(np.float32)
+            self.input_buffer.append(step_features)
 
         if len(self.input_buffer) >= self.model.n_samples:   
-            # print(len(self.input_buffer), )         
-            x = Tensor(np.concatenate(self.input_buffer, axis=0)).unsqueeze(0)
-            with th.no_grad():
-                diagnosis_theta = self.model.forward(x).squeeze(0).detach().numpy()
+            window = np.stack(self.input_buffer[-self.model.n_samples:], axis=0)
+            x = torch.as_tensor(window.reshape(1, -1), dtype=torch.float32)
+            with torch.no_grad():
+                diagnosis_theta = self.model(x).squeeze(0).numpy()
             info = {'active': True}
             self.input_buffer.pop(0)
         else:
@@ -54,4 +58,4 @@ class MLPFaultDiagnosis(LearningBasedFaultDiagnosis):
 
         return {'diagnosis_theta': diagnosis_theta}, info
 
-register_diagnosis_module("MLPFaultDiagnosis", MLPFaultDiagnosis)
+register_diagnosis_module("CNNFaultDiagnosis", CNNFaultDiagnosis)

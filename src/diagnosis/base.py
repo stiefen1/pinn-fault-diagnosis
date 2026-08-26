@@ -30,13 +30,65 @@ class RevoltFaultDiagnosis(IDiagnosis):
             dt:float,
             *args,
             dp_mode: bool = False, 
+            n_iso: int = 100,
             **kwargs
     ):
         self.dynamics = ReVolt3Dynamics(dt, dp_mode=dp_mode)
+        self.n_iso = n_iso
         super().__init__(states, RevoltParameters3DOF(), dt, *args, **kwargs)
 
     def __get__(self, states:np.ndarray, *args, **kwargs) -> Tuple[Dict, Dict]:
         raise NotImplementedError(f"you must implement a __get__ method returning fault diagnosis")
+
+    def H(self, states_est: list[np.ndarray], control_commands: list[np.ndarray], thetas: list[np.ndarray], disturbances: Optional[list[np.ndarray]] = None) -> np.ndarray:
+        A_row_to_keep = [0, 1, 5, 6, 7, 11, 12, 13]
+        A_col_to_keep = [0, 1, 5, 6, 7, 11, 12, 13]
+        B_col_to_keep = []
+        B_row_to_keep = []
+        C_col_to_keep = []
+        C_row_to_keep = []
+
+        C = np.eye(18)[np.ix_(C_row_to_keep, C_col_to_keep)]
+
+        for k, (x, u, theta) in enumerate(zip(states_est, control_commands, thetas)):
+            if disturbances is not None:
+                dist = disturbances[k]
+            else:
+                dist = np.zeros((3,))
+
+            Ak = self.dynamics.A(x, u, theta, dist)[np.ix_(A_row_to_keep, A_col_to_keep)]
+            Bk = self.dynamics.B(x, u, theta, dist)[np.ix_(B_row_to_keep, B_col_to_keep)]
+
+        
+        # Build H
+
+    def detection(self, fault_signal: np.ndarray, threshold:float = 25) -> bool:
+        return fault_signal[-1] >= threshold
+
+    def isolation(self, fault_signal: np.ndarray, control_commands: np.ndarray) -> np.ndarray:
+        max_corrs = []
+        fault_signal_norm = np.linalg.norm(fault_signal)
+
+        for k in range(6):
+            control_signal = control_commands[k, :].squeeze()
+            # correlation = np.correlate(fault_signal, control_signal, mode='full')
+            max_corrs.append((control_signal.T @ fault_signal) / (np.max(control_signal)*fault_signal_norm+1e-3))
+            # max_corrs.append(np.max((control_signal * fault_signal) / (np.mean(np.abs(control_signal))+1e-3)))
+
+            # # Find the lag (time shift) where they match best
+            # lags = np.arange(-fault_signal.shape[0] + 1, control_signal.shape[0])
+            # # print(correlation.shape, lags.shape)
+            # best_idx = np.argmax(np.abs(correlation))
+            # best_lag = lags[best_idx].astype(float)
+            # max_corr = correlation[best_idx].astype(float)
+
+            # max_corrs.append(max_corr)
+            # best_lags.append(best_lag)
+
+        
+
+        # print(f"{max_corrs}")
+        return np.array(max_corrs)
 
     # --- helpers ---
     def compute_disturbance(self, ext_state: np.ndarray, wind: Wind, current: Current) -> np.ndarray:

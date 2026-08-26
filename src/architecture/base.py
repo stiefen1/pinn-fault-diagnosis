@@ -6,6 +6,8 @@ from torch import Tensor, load
 
 from src.utils.builders import ACTIVATION_CLASSES
 
+from pathlib import Path
+
 class LearningBasedFaultEstimator(nn.Module, ABC):
 	architecture: nn.Sequential
 
@@ -79,7 +81,7 @@ def create_model(cfg: dict[str, Any]) -> LearningBasedFaultEstimator:
 	)
 	resume_from = cfg["io"].get("resume_from", None)
 	if resume_from is not None:
-		ckpt = load(resume_from, map_location="cpu", weights_only=True)
+		ckpt = load(Path(resume_from).resolve(), map_location="cpu", weights_only=True)
 		model.load_state_dict(ckpt["model_state_dict"])
 		print(f"Loaded weights from: {resume_from}")
 	return model

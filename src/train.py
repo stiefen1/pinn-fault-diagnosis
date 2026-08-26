@@ -10,7 +10,8 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
 from src.architecture.base import create_model
-import src.architecture.mlp  # noqa: F401  # Registers MLPFaultEstimator and FaultEstimatorNN alias
+import src.architecture.cnn  # noqa: F401  # Registers CNNFaultEstimator
+import src.architecture.mlp  # noqa: F401  # Registers MLPFaultEstimator
 from src.utils.builders import build_loss, build_optimizer, resolve_device, build_scheduler
 from src.utils.configs import load_config, apply_overrides
 from src.utils.data import make_loader
@@ -73,11 +74,12 @@ def train_one_epoch(
 	total_loss = 0.0
 	count = 0
 
+    
 	for step_idx, (x, y) in enumerate(loader, start=1):
 		x = x.to(device, non_blocking=True)
 		y = y.to(device, non_blocking=True)
-		optimizer.zero_grad(set_to_none=True)
-
+		optimizer.zero_grad(set_to_none=True)        
+        
 		# Forward pass
 		pred = model(x)
 		loss = criterion(pred, y)

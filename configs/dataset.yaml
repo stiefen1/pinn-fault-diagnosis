@@ -128,7 +128,7 @@ env:
 
     control:
       enabled: false   # guidance and control parameters have no effect if control is not enabled
-      horizon: 30 # for MPC
+      horizon: 40 # for MPC
       singularity_weight: 0.0
 
     faults:

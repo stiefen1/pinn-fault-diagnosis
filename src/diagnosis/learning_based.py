@@ -2,6 +2,8 @@ from python_vehicle_simulator.vehicles.revolt3 import ReVolt3Dynamics, RevoltThr
 from src.diagnosis.base import RevoltFaultDiagnosis, register_diagnosis_module
 
 from src.architecture.base import create_model, LearningBasedFaultEstimator
+import src.architecture.cnn  # noqa: F401  # Registers CNNFaultEstimator
+import src.architecture.mlp  # noqa: F401  # Registers MLPFaultEstimator
 
 from typing import Tuple, Dict, Any
 

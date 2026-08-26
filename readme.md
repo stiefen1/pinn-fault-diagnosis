@@ -25,6 +25,10 @@ Stephen:
 # Notes
 - I have changed how target theta is being set; before we were predicting theta[k] based on (u[k-t+1], u[k-t+2], ..., u[k]) and (y[k-t+1], y[k-t+2], ..., y[k]). My guess is that it makes the training more difficult, because a fault just occured, we ask the NN for a very large decision even though it doesn't have much information for that. With similar level of information we could ask the NN to provide an oppositve diagnosis, which I believe makes the training inefficient. Instead, we now use an Exponential Moving Average over (theta[k-t+1], theta[k-t+2], ..., theta[k]), where we care more about theta[k-t+1].
 
+Without noise, the fault signal when a propeller fault occurs is highly correlated to the concerned propeller's speed. We could do fault diagnosis in three steps:
+- fault diagnosis by checking whether fault signal > threshold
+- fault identification by computing intercorrelation of the fault signal w.r.t control commands (we should ideally generate the control commands such that their intercorrelation are zero -> RL-based ?)
+- fault estimation through PME with RL-based persistent excitation
 
 # Installation
 ```

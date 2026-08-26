@@ -1,5 +1,6 @@
 from .ekf import *
 from .ekpf import *
+from .cnn import *
 from .mhe import *
 from .mlp import *
 from .parity_space import *

@@ -30,22 +30,47 @@ diagnosis:
     #   name: PEMFaultDiagnosis
     #   kwargs: {}
     nn: # This structure is a bit stupid (:
-      name: MLPFaultDiagnosis
+    #   name: MLPFaultDiagnosis
+    #   kwargs:
+    #     cfg:
+    #       model: 
+    #         name: MLPFaultEstimator
+    #         architecture:
+    #           hidden_layers: [256, 128, 64]
+    #           activation:
+    #             name: relu # relu | tanh | gelu | silu | leaky_relu
+    #           output_activation:
+    #             name: sigmoid
+    #       dataset:
+    #         features:
+    #           nu: 6
+    #           ny: 9
+    #           n_samples: 50
+    #           ntheta: 6
+    #       io:
+    #         resume_from: "Z:/dev/pinn-fault-diagnosis/runs/train_demo/checkpoints/best.pt"
+      name: CNNFaultDiagnosis
       kwargs:
         cfg:
           model: 
-            name: MLPFaultEstimator
+            name: CNNFaultEstimator
             architecture:
-              hidden_layers: [256, 128, 64]
+              conv_channels: [4, 8]
+              kernel_size: [12, 6]
+              padding: [0, 0]
+              hidden_layers: [64, 32]
               activation:
                 name: relu # relu | tanh | gelu | silu | leaky_relu
               output_activation:
-                name: sigmoid
+                name: sigmoid # To have theta \in [0, 1]
+              dropout: 0.1
+              layer_norm: true
+              batch_norm: true
           dataset:
             features:
               nu: 6
               ny: 9
-              n_samples: 50
+              n_samples: 100
               ntheta: 6
           io:
             resume_from: "runs/train_demo/checkpoints/best.pt"

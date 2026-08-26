@@ -22,7 +22,7 @@ from src.diagnosis.pem import PEMFaultDiagnosis
 import numpy as np, matplotlib.pyplot as plt
 
 dt = 0.2
-horizon = 30
+horizon = 40
 dp_mode = False
 
 vessel = ReVolt3(
@@ -32,7 +32,7 @@ vessel = ReVolt3(
             horizon,
             dt,
             dp_mode=dp_mode,
-            # singularity_weight=3e-4
+            # singularity_weight=1e-4
         ),
         guidance=TrajectoryTrackingGuidance(
             PWLPath.sample(d_tot=500, max_turn_deg=90, seg_len_range=(3, 5), seed=42).smooth(3),
@@ -40,7 +40,7 @@ vessel = ReVolt3(
             dt,
             horizon            
         ),
-        navigation=NavigationRevolt(np.array(18*[0]), dt, dp_mode=dp_mode, perfect_meas=True),
+        navigation=NavigationRevolt(np.array(18*[0]), dt, dp_mode=dp_mode, perfect_meas=False),
         # diagnosis=EKPFaultDiagnosis(
         #     dt,
         #     n_particles=200,
@@ -70,8 +70,9 @@ vessel = ReVolt3(
         # )
         diagnosis=PEMFaultDiagnosis( # Works well with perfect measurements, but fails when noise is added
             dt,
-            lr=10,
-            sparse_grad=False
+            lr=50,
+            # lr=10,
+            sparse_grad=False # Sparse grad is really bad when noise is active
         )
     )
 
@@ -93,22 +94,22 @@ sim = Simulator(
         window_size=(6, 6)
     )
 
-sim.run(tf=50, render=False, store_data=True, theta=np.array([1, 1, 1, 0.5, 1, 1]))
+sim.run(tf=100, render=False, store_data=True, kwargs_from_t={"theta":{"t": 50, "<=t": np.array([1, 1, 1, 1, 1, 1]), ">t": np.array([1, 1, 1, 0.5, 1, 1])}})
 
 # After calling plot_gnc_data_multi, add:
 nav_data = sim.simulation_data['gnc_data']['navigation']
 vessel_data = sim.simulation_data['own_vessel_states']
 
-fig1 = sim.plot_gnc_data_multi([
-    'navigation.eta[0]',
-    'vessel.eta[0]'
-    ], x_path=['navigation.eta[1]', 'vessel.eta[1]'])
-vessel.guidance.path.plot(ax=fig1.axes[0])
-fig1.axes[0].set_aspect('equal')
+# fig1 = sim.plot_gnc_data_multi([
+#     'navigation.eta[0]',
+#     'vessel.eta[0]'
+#     ], x_path=['navigation.eta[1]', 'vessel.eta[1]'])
+# vessel.guidance.path.plot(ax=fig1.axes[0])
+# fig1.axes[0].set_aspect('equal')
 
-fig5 = sim.plot_gnc_data_multi([
-    'vessel.nu[0]', 'vessel.nu[1]'
-])
+# fig5 = sim.plot_gnc_data_multi([
+#     'vessel.nu[0]', 'vessel.nu[1]'
+# ])
 
 fig6 = sim.plot_gnc_data_multi([
     'navigation.states[15]',
@@ -126,12 +127,14 @@ fig7 = sim.plot_gnc_data_multi([
 fig7.axes[0].set_ylim(0, 1.1)
 
 fig8 = sim.plot_gnc_data_multi([
-    'diagnosis.diagnosis.diagnosis_theta_cov[0]',
-    'diagnosis.diagnosis.diagnosis_theta_cov[1]',
-    'diagnosis.diagnosis.diagnosis_theta_cov[3]',
-    'diagnosis.diagnosis.diagnosis_theta_cov[4]',
+    'diagnosis.diagnosis.corrs[0]',
+    'diagnosis.diagnosis.corrs[1]',
+    'diagnosis.diagnosis.corrs[3]',
+    'diagnosis.diagnosis.corrs[4]',
 ])
 fig9 = sim.plot_gnc_data('diagnosis.diagnosis.fault_indicator')
+fig10 = sim.plot_gnc_data('diagnosis.diagnosis.fault_signal_integral')
+
 # fig8 = sim.plot_gnc_data_multi([
 #     'diagnosis.diagnosis.residuals[0]',
 #     'diagnosis.diagnosis.residuals[1]',

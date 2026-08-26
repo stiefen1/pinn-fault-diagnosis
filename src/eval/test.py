@@ -7,7 +7,8 @@ from torch import nn
 from torch.utils.data import DataLoader
 
 from src.architecture.base import create_model
-import src.architecture.mlp  # noqa: F401  # Registers MLPFaultEstimator and FaultEstimatorNN alias
+import src.architecture.cnn  # noqa: F401  # Registers CNNFaultEstimator
+import src.architecture.mlp  # noqa: F401  # Registers MLPFaultEstimator
 from src.utils.builders import build_loss, resolve_device
 from src.utils.checkpoints import resolve_test_checkpoint_path
 from src.utils.configs import load_config
