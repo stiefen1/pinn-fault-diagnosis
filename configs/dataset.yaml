@@ -3,23 +3,23 @@ config:
 
 project:
   mode: test
-  experiment_name: generate_dataset_v1
+  experiment_name: nmpc_large
 
 episodes:
-  N: 500 # number of episodes to build the dataset
-  max_steps_per_episode: 500 # total number of simulation steps for a single episode
-  num_workers: 8 # number of parallel CPU workers (1 = sequential)
+  N: 1000 # number of episodes to build the dataset
+  max_steps_per_episode: 1000 # total number of simulation steps for a single episode
+  num_workers: 14 # number of parallel CPU workers (1 = sequential)
 
 dataset:
   save_dir: data/train # location to save dataset
-  file_name: fault_identification_dataset_500_random.npz
+  file_name: fault_identification_dataset_nmpc_1000steps_1000ep.npz
 
 hpc:
   partition: CPUQ           # There's not point in using GPUs here
   time: "12:00:00" 
   ntasks: 1
   nodes: 1
-  cpus_per_task: 10
+  cpus_per_task: 16
   mem: 32G
 
   slurm_script:
@@ -38,7 +38,7 @@ hpc:
 
 env:
   dt: 0.2
-  seed: 35
+  seed: 29
   render: false
 
   wind:
@@ -127,12 +127,13 @@ env:
           - 0.0314159
 
     control:
-      enabled: false   # guidance and control parameters have no effect if control is not enabled
+      enabled: true   # guidance and control parameters have no effect if control is not enabled
       horizon: 40 # for MPC
       singularity_weight: 0.0
 
-    faults:
-      loss_of_effectiveness:
+    faults: # if singe is true, we use prob as weights to select which theta will be faulty
+      loss_of_effectiveness: 
+        single: true # Only one single fault in a single episode
         prob: [1.0, 1.0, 0]
         amplitude:
           min: 0
@@ -140,12 +141,13 @@ env:
           mean: 0.5 # uniform distribution if only min and max are provided, othewise clipped gaussian
           std: 0.3
         time:
-          min: 0.0
-          max: 1.0
-          mean: 0.5
+          min: 0.3
+          max: 0.7
+          mean: 0.4
           std: 0.2
 
       azimuth_stucked:
+        single: true # Only one single fault in a single episode
         prob: [0, 0, 0] # Currently no fault
         is_integer: true # fault parameter can only be 0 or 1
         amplitude:

@@ -10,6 +10,7 @@ from src.utils.checkpoints import resolve_run_dir
 
 def maybe_export_test_predictions(cfg: dict[str, Any], preds: np.ndarray, targets: np.ndarray) -> None:
     """Export test predictions depending on test.export config flags."""
+    print("A")
     test_cfg = cfg.get("test", {})
     export_cfg = test_cfg.get("export", {})
     if not isinstance(export_cfg, dict):
@@ -18,11 +19,14 @@ def maybe_export_test_predictions(cfg: dict[str, Any], preds: np.ndarray, target
     run_dir = resolve_run_dir(cfg)
     output_dir = run_dir / "test_outputs"
     output_dir.mkdir(parents=True, exist_ok=True)
+    print("B")
 
     if bool(export_cfg.get("save_npz", False)):
         np.savez(output_dir / "predictions.npz", pred=preds, target=targets)
+    print("C")
 
     if bool(export_cfg.get("save_csv", False)):
+        print(output_dir)
         pred_flat = preds.reshape(preds.shape[0], -1)
         target_flat = targets.reshape(targets.shape[0], -1)
         headers = [

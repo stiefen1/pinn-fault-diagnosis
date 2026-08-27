@@ -64,8 +64,10 @@ def register_model(name: str, model_cls: type[LearningBasedFaultEstimator]) -> N
 
 def create_model(cfg: dict[str, Any]) -> LearningBasedFaultEstimator:
 	model_cfg = cfg["model"]
+	print(model_cfg)
 	features_cfg = cfg["dataset"]["features"]
-
+	print(features_cfg)
+	
 	model_name = str(model_cfg["name"])
 	if model_name not in MODEL_REGISTRY:
 		available = ", ".join(sorted(MODEL_REGISTRY.keys()))

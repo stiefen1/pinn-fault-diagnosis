@@ -73,7 +73,8 @@ diagnosis:
               n_samples: 100
               ntheta: 6
           io:
-            resume_from: "runs/train_demo/checkpoints/best.pt"
+            resume_from: "Z:/dev/pinn-fault-diagnosis/runs/train_demo/checkpoints/best.pt"
+            # resume_from: "runs/train_demo/checkpoints/best.pt"
 
 
 project:

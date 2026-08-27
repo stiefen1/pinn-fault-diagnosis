@@ -11,24 +11,30 @@ project:
 io:
   # Keep for consistency with where training saved checkpoints.
   checkpoint_dir: checkpoints/
+  resume_from: "Z:/dev/pinn-fault-diagnosis/runs/train_demo/checkpoints/best.pt"
 
   # Test script does not use TensorBoard; keep disabled by default.
   logging:
     enabled: false
 
 model:
-  name: MLPFaultEstimator
-
+  name: CNNFaultEstimator
   architecture:
-    hidden_layers: [128, 128, 64]
+    conv_channels: [4, 8]
+    kernel_size: [14, 7]
+    padding: [0, 0]
+    hidden_layers: [64, 32]
     activation:
       name: relu # relu | tanh | gelu | silu | leaky_relu
     output_activation:
-      name: sigmoid
+      name: sigmoid # To have theta \in [0, 1]
+    dropout: 0.1
+    layer_norm: true
+    batch_norm: true
 
 dataset:
   format: npz
-  test_path: data/validation/fault_identification_dataset_v1.npz
+  test_path: data/validation/fault_identification_dataset.npz
 
   loading:
     shuffle_test: false
@@ -36,9 +42,18 @@ dataset:
   batch:
     test_batch_size: 1024
 
+  features:
+    n_samples: 100
+    target_mode: ema # instant | ema -> instant means we take theta at last time step as target. Exponential moving average (EMA) enables to use a weighted average of theta along the window instead
+    ema_alpha: 0.1 # Used when target_mode is ema; larger values respond faster.
+    nu: 6
+    ny: 9
+    n_samples: 100
+    ntheta: 6
+
 test:
   checkpoint: path            # best | last | path
-  checkpoint_path: runs/train_baseline_v1/checkpoints/epoch_0290.pt # null
+  checkpoint_path: Z:/dev/pinn-fault-diagnosis/runs/train_demo/checkpoints/best.pt # null
   metrics: [rmse, mae, r2]
   export:
     save_csv: true

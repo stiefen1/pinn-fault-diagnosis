@@ -84,8 +84,15 @@ def sample_fault_cfg(rng: np.random.Generator, faults_cfg: dict) -> list[dict | 
     probs = np.asarray(faults_cfg["prob"], dtype=float) # tuple[p1, p2, p3]
     cfg = []
 
-    for i in range(3):
-        if rng.random() < probs[i]:
+    # We always have multiple faults at the same time, which makes the task VERY challenging.
+    # We should focus first on single faults
+    possible_fault_idx = np.arange(probs.shape[0]).tolist()
+    w_tot = np.sum(probs).astype(float)
+    if faults_cfg["single"] and w_tot > 0.0:
+        possible_fault_idx = [rng.choice(len(probs), p=probs/w_tot)]
+
+    for i in range(probs.shape[0]):
+        if i in possible_fault_idx and rng.random() < probs[i]:
             t_norm = sample_clipped_value(rng, time_cfg) # randomy sample fault time, normalized \in [0, 1] i.e equals 1 if t_fault = tf
             assert isinstance(t_norm, float), f"normalized fault time must be float, got t_norm={t_norm} of type {type(t_norm)}"
 
